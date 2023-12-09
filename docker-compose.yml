@@ -27,7 +27,7 @@ services:
       - frontend-network
 
   Groot:
-    build: Groot
+    build: groot
     restart: allways
     environment:
       WHOAMI: ${WHOAMI}
