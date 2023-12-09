@@ -28,7 +28,7 @@ services:
 
   groot:
     build: groot
-    restart: allways
+    restart: always
     environment:
       WHOAMI: ${WHOAMI}
     networks:
