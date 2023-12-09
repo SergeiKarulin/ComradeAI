@@ -15,7 +15,9 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     volumes:
-      - "rabbitmq-data:/var/lib/rabbitmq" # Persist RabbitMQ data
+      - "rabbitmq-data:/var/lib/rabbitmq" 
+      - "./init-rabbitmq.sh:/init-rabbitmq.sh"
+    command: bash -c "/init-rabbitmq.sh && rabbitmq-server"
 
   www:
     container_name: nginx
