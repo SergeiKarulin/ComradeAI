@@ -1,11 +1,6 @@
 #!/bin/bash
 
-wait_for_rabbitmq() {
-    echo "Waiting for RabbitMQ to start..."
-    while ! rabbitmqctl status >/dev/null 2>&1; do
-        sleep 1
-    done
-}
+sleep 20
 
 wait_for_rabbitmq
 rabbitmqctl add_vhost demoAccess
