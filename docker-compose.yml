@@ -17,11 +17,11 @@ services:
     volumes:
       - "rabbitmq-data:/var/lib/rabbitmq" # Persist RabbitMQ data
 
-  web:
+  www:
     build: nginx
     restart: always
     ports:
-      - 80:80
+      - 81:81
     networks:
       - frontend-network
 
