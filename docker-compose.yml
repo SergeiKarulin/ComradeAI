@@ -2,7 +2,7 @@ version: "3.8"
 services:
   RabbitMQCluster01:
     image: rabbitmq:3-management
-    container_name: rabbitmq
+    container_name: RabbitMQCluster01
     restart: always
     networks:
       - frontend-network
@@ -18,6 +18,7 @@ services:
       - "rabbitmq-data:/var/lib/rabbitmq" # Persist RabbitMQ data
 
   www:
+    container_name: nginx
     build: nginx
     restart: always
     ports:
