@@ -25,9 +25,10 @@ jobs:
 
     - name: Set up SSH keys
       run: |
-        echo "${{github.event.head_commit.modified}}"
-        echo "${{github.event.head_commit.added}}"
-        echo "${{github.event.head_commit.added}}"
+        echo "${{github.event.head_commit.modified}}
+        echo "${{github.event.head_commit.added}}
+        echo "${{github.event.head_commit.added}}
+        echo "-------------------------------------------------------------"
         echo "${{ secrets.TEST_SSH_KEY }}" > private_key.pem
         chmod 600 private_key.pem
         mkdir -p ~/.ssh
