@@ -14,10 +14,10 @@ services:
       WHOAMI: ${WHOAMI}
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    command: bash -c "chmod +x /init-rabbitmq.sh && /init-rabbitmq.sh && rabbitmq-server"
     volumes:
       - "rabbitmq-data:/var/lib/rabbitmq" 
       - "./init-rabbitmq.sh:/init-rabbitmq.sh"
-    command: bash -c "rabbitmq-server && chmod +x /init-rabbitmq.sh && /init-rabbitmq.sh"
 
   www:
     container_name: nginx
