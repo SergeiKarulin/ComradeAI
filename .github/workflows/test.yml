@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - test
-    paths:
-      - 'transport/**'
-      - 'groot/**'
-      - '**'
 
 jobs:
   build-transport:
