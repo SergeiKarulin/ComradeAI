@@ -32,7 +32,7 @@ jobs:
 
     - name: Build
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/}" && git pull && docker-compose build"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/}" && git pull origin test && docker-compose build"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
     
