@@ -1,7 +1,14 @@
 import pika
+import os
+
+load_dotenv()
+agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_USER')
+agnetRMQPass = os.getenv('RABBITMQ_DEFAULT_PASS')
+
+credentials = pika.PlainCredentials(agentRMQLogin, agnetRMQPass)
 
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='RabbitMQCluster01', virtual_host = 'demoAccess'))
+    pika.ConnectionParameters(host='RabbitMQCluster01', credentials = credentials, virtual_host = 'demoAccess'))
 
 channel = connection.channel()
 

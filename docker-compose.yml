@@ -31,6 +31,8 @@ services:
     restart: always
     environment:
       WHOAMI: ${WHOAMI}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     networks:
       - backend-network    
 
