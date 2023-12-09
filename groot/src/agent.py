@@ -1,5 +1,6 @@
 import pika
 import os
+from dotenv import load_dotenv
 
 load_dotenv()
 agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_USER')
