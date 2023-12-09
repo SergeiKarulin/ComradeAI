@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ComradeAI Messaging Infrastructure Node 01 [experiment]</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        #content {
+            position: absolute;
+            z-index: 10;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="content">
+        <h1>ComradeAI Messaging Infrastructure Node 01 [experiment]</h1>
+        <p>Comrade AI is an open source framework to connect AI services like Claude, GPT3/4, Yandex GPT into unified intelligent agents. Build automated workflows, create specialized bots for tasks like scheduling or customer service, enable communication via chat/email/calls, and connect agents into a collaborative network to multiply their effectiveness.</p>
+        <a href="https://github.com/SergeiKarulin/ComradeAI" target="_blank">Project on GitHub</a>
+    </div>
+    <script>
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+        }
+
+        function draw() {
+            background(0); // Black background
+            stroke(255); // White lines
+            strokeWeight(2);
+            translate(width / 2, height / 2);
+
+            for (let i = 0; i < 10; i++) {
+                push();
+                rotate(TWO_PI * i / 10 + frameCount * 0.01);
+                let tx = 200 * noise(0.01 * frameCount + i);
+                let ty = 200 * noise(0.01 * frameCount + 10 + i);
+                translate(tx, ty);
+                noFill();
+                ellipse(0, 0, 100, 100);
+                pop();
+            }
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
+    </script>
+</body>
+</html>
