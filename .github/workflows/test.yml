@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-transport:
-    if: contains(github.event.head_commit.message, 'transport') || contains(github.event.head_commit.added, 'transport')
+    if: contains(github.event.head_commit.message, 'transport')
     runs-on: ubuntu-latest
 
     steps:
@@ -25,13 +25,6 @@ jobs:
 
     - name: Set up SSH keys
       run: |
-        echo "${{github.event.head_commit.modified}}"
-        echo "${{github.event.head_commit.added}}"
-        echo "${{github.event.head_commit.message}}"
-        echo "${{github.event.head_commits.modified}}"
-        echo "${{github.event.head_commits.added}}"
-        echo "Commit data: ${{ toJson(github.event.head_commit) }}"
-        echo "-------------------------------------------------------------"
         echo "${{ secrets.TEST_SSH_KEY }}" > private_key.pem
         chmod 600 private_key.pem
         mkdir -p ~/.ssh
@@ -39,24 +32,24 @@ jobs:
 
     - name: Set-up environmental files
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/transport/}" && echo "WHOAMI = Test" > .env && echo "RABBITMQ_DEFAULT_USER = ${{ secrets.RABBITMQ_DEFAULT_USER }}" >> .env && echo "RABBITMQ_DEFAULT_PASS = ${{ secrets.RABBITMQ_DEFAULT_PASS }}" >> .env"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/}/transport/ && echo "WHOAMI = Test" > .env && echo "RABBITMQ_DEFAULT_USER = ${{ secrets.RABBITMQ_DEFAULT_USER }}" >> .env && echo "RABBITMQ_DEFAULT_PASS = ${{ secrets.RABBITMQ_DEFAULT_PASS }}" >> .env"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
 
     - name: Build
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/transport/}" && git pull origin test && docker-compose build"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/}/transport/ && git pull origin test && docker-compose build"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
     
     - name: Re-launch
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/transport/}" && docker-compose down && docker-compose up -d"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/}/transport/ && docker-compose down && docker-compose up -d"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
 
   build-groot:
-    if: contains(github.event.head_commit.modified, 'groot') || contains(github.event.head_commit.added, 'groot')
+    if: contains(github.event.head_commit.message, 'groot')
     runs-on: ubuntu-latest
 
     steps:
@@ -76,18 +69,18 @@ jobs:
 
     - name: Set-up environmental files
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/groot/}" && echo "WHOAMI = Test" > .env"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/}/groot/ && echo "WHOAMI = Test" > .env"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
 
     - name: Build
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/groot/}" && git pull origin test && docker-compose build"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/}/groot/ && git pull origin test && docker-compose build"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
     
     - name: Re-launch
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/groot/}" && docker-compose down && docker-compose up -d"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/}/groot/ && docker-compose down && docker-compose up -d"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
