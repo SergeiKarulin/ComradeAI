@@ -1,10 +1,31 @@
 import pika
 import os
 from dotenv import load_dotenv
+import requests
+from requests.auth import HTTPBasicAuth
 
 load_dotenv()
 agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_USER')
 agnetRMQPass = os.getenv('RABBITMQ_DEFAULT_PASS')
+
+# RabbitMQ Management API URL
+url = 'http://localhost:15672/api/'
+
+headers = {'Content-Type': 'application/json'}
+vhost_response = requests.put(url + 'vhosts/demoAccess', 
+                              headers=headers, 
+                              auth=HTTPBasicAuth(agentRMQLogin, agnetRMQPass))
+
+user_response = requests.put(url + 'users/remoteClient01', 
+                             headers=headers, 
+                             json={'password': 'remoteClient01Pass', 'tags': ''}, 
+                             auth=HTTPBasicAuth(agentRMQLogin, agnetRMQPass))
+
+permissions_response = requests.put(url + 'permissions/demoAccess/remoteClient01', 
+                                    headers=headers, 
+                                    json={'configure': '.*', 'write': '.*', 'read': '.*'}, 
+                                    auth=HTTPBasicAuth(agentRMQLogin, agnetRMQPass))
+
 
 credentials = pika.PlainCredentials(agentRMQLogin, agnetRMQPass)
 
