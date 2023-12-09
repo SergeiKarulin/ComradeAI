@@ -30,6 +30,7 @@ jobs:
         echo "${{github.event.head_commit.message}}"
         echo "${{github.event.head_commits.modified}}"
         echo "${{github.event.head_commits.added}}"
+        echo "Commit data: ${{ toJson(github.event.head_commit) }}"
         echo "-------------------------------------------------------------"
         echo "${{ secrets.TEST_SSH_KEY }}" > private_key.pem
         chmod 600 private_key.pem
