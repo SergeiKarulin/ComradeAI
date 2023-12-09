@@ -27,7 +27,6 @@ services:
       - frontend-network
 
   Groot:
-    conatiner_name: Agent_Groot
     build: Groot
     restart: allways
     environment:
