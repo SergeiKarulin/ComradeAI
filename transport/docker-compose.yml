@@ -28,18 +28,5 @@ services:
     networks:
       - frontend-network
 
-  groot:
-    build: groot
-    restart: always
-    environment:
-      WHOAMI: ${WHOAMI}
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
-    networks:
-      - backend-network    
-
 volumes:
   rabbitmq-data:
-networks:
-  backend-network:
-  frontend-network:
