@@ -26,6 +26,15 @@ services:
     networks:
       - frontend-network
 
+  Groot:
+    conatiner_name: Agent_Groot
+    build: Groot
+    restart: allways
+    environment:
+      WHOAMI: ${WHOAMI}
+    networks:
+      - backend-network    
+
 volumes:
   rabbitmq-data:
 networks:
