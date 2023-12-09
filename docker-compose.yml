@@ -4,6 +4,9 @@ services:
     image: rabbitmq:3-management
     container_name: rabbitmq
     restart: always
+    networks:
+      - frontend-network
+      - backend-network
     ports:
       - "5672:5672" # AMQP protocol port
       - "15672:15672" # Management UI port
@@ -12,8 +15,7 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     volumes:
-      - "./rabbitmq-data:/var/lib/rabbitmq" # Persist RabbitMQ data
-      # Additional volume mounts can be added here if needed
+      - "rabbitmq-data:/var/lib/rabbitmq" # Persist RabbitMQ data
 
   web:
     build: nginx
@@ -22,3 +24,9 @@ services:
       - 80:80
     networks:
       - frontend-network
+
+volumes:
+  rabbitmq-data:
+networks:
+  backend-network:
+  frontend-network:
