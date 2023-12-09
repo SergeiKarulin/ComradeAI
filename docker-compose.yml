@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  RabbitMQCluster01:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management UI port
+    environment:
+      WHOAMI: ${WHOAMI}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - "./rabbitmq-data:/var/lib/rabbitmq" # Persist RabbitMQ data
+      # Additional volume mounts can be added here if needed

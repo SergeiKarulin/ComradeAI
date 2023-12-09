@@ -1,0 +1,43 @@
+name: Stage Build and Deploy
+
+on:
+  push:
+    branches:
+      - stage
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Set up Docker environment
+      run: |
+        echo "WHOAMI=Stage" >> $GITHUB_ENV
+
+    - name: Set up SSH keys
+      run: |
+        echo "${{ secrets.STAGE_SSH_KEY }}" > private_key.pem
+        chmod 600 private_key.pem
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.STAGE_IP_ADDRESS }} >> ~/.ssh/known_hosts
+
+    - name: Set-up environmental files
+      run: |
+        ssh -i private_key.pem ${{ secrets.STAGE_SSH_USER }}@${{ secrets.STAGE_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/}" && echo "WHOAMI = ${{ secrets.WHOAMI }}" > .env && echo "RABBITMQ_DEFAULT_USER = ${{ secrets.RABBITMQ_DEFAULT_USER }}" >> .env && echo "RABBITMQ_DEFAULT_PASS = ${{ secrets.RABBITMQ_DEFAULT_PASS }}" >> .env" 
+      env:
+        GITHUB_REPOSITORY: ${{ github.repository }}
+
+    - name: Build
+      run: |
+        ssh -i private_key.pem ${{ secrets.STAGE_SSH_USER }}@${{ secrets.STAGE_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/}" && git pull && docker-compose build"
+      env:
+        GITHUB_REPOSITORY: ${{ github.repository }}
+    
+    - name: Re-launch
+      run: |
+        ssh -i private_key.pem ${{ secrets.STAGE_SSH_USER }}@${{ secrets.STAGE_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/}" && docker-compose down && docker-compose up -d"
+      env:
+        GITHUB_REPOSITORY: ${{ github.repository }}

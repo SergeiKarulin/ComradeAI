@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.py[cod]
+venv/
+.idea/
+*.log
+*.vscode*
+*launch.json*
