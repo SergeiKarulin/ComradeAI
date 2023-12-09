@@ -17,7 +17,7 @@ services:
     volumes:
       - "rabbitmq-data:/var/lib/rabbitmq" 
       - "./init-rabbitmq.sh:/init-rabbitmq.sh"
-    command: bash -c "chmod +x /init-rabbitmq.sh && /init-rabbitmq.sh && rabbitmq-server"
+    command: bash -c "rabbitmq-server && chmod +x /init-rabbitmq.sh && /init-rabbitmq.sh"
 
   www:
     container_name: nginx
