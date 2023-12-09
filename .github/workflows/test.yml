@@ -25,6 +25,9 @@ jobs:
 
     - name: Set up SSH keys
       run: |
+        echo "${{github.event.head_commit.modified}}"
+        echo "${{github.event.head_commit.added}}"
+        echo "${{github.event.head_commit.added}}"
         echo "${{ secrets.TEST_SSH_KEY }}" > private_key.pem
         chmod 600 private_key.pem
         mkdir -p ~/.ssh
@@ -49,7 +52,7 @@ jobs:
         GITHUB_REPOSITORY: ${{ github.repository }}
 
   build-groot:
-    if: contains(github.event.head_commit.message, 'groot') || contains(github.event.head_commit.added, 'groot')
+    if: contains(github.event.head_commit.modified, 'groot') || contains(github.event.head_commit.added, 'groot')
     runs-on: ubuntu-latest
 
     steps:
