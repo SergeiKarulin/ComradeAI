@@ -7,6 +7,7 @@ on:
     paths:
       - 'transport/**'
       - 'groot/**'
+      - '**'
 
 jobs:
   build-transport:
