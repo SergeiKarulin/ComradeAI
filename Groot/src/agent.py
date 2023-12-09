@@ -1,7 +1,7 @@
 import pika
 
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='RabbitMQCluster01'))
+    pika.ConnectionParameters(host='RabbitMQCluster01', virtual_host = 'demoAccess'))
 
 channel = connection.channel()
 
