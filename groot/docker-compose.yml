@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  groot:
+    build: groot
+    restart: always
+    environment:
+      WHOAMI: ${WHOAMI}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}

@@ -1,0 +1,32 @@
+version: "3.8"
+services:
+  RabbitMQCluster01:
+    image: rabbitmq:3-management
+    container_name: RabbitMQCluster01
+    restart: always
+    networks:
+      - frontend-network
+      - backend-network
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management UI port
+    environment:
+      WHOAMI: ${WHOAMI}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    command: bash -c "rabbitmq-server"
+    volumes:
+      - "rabbitmq-data:/var/lib/rabbitmq" 
+      - "./initrabbitmq.sh:/initrabbitmq.sh"
+
+  www:
+    container_name: nginx
+    build: nginx
+    restart: always
+    ports:
+      - 81:81
+    networks:
+      - frontend-network
+
+volumes:
+  rabbitmq-data:
