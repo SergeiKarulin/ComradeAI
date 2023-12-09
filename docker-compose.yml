@@ -14,7 +14,7 @@ services:
       WHOAMI: ${WHOAMI}
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
-    command: bash -c "rabbitmq-server && add_vhost demoAccess && add_user remoteClient01 remoteClient01Pass && set_permissions -p demoAccess remoteClient01 ".*" ".*" ".*""
+    command: bash -c "rabbitmq-server ; sleep 15 && add_vhost demoAccess && add_user remoteClient01 remoteClient01Pass && set_permissions -p demoAccess remoteClient01 ".*" ".*" ".*""
     volumes:
       - "rabbitmq-data:/var/lib/rabbitmq" 
       - "./initrabbitmq.sh:/initrabbitmq.sh"
