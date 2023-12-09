@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-transport:
-    if: contains(github.event.head_commit.modified, 'transport') || contains(github.event.head_commit.added, 'transport')
+    if: contains(github.event.head_commit.message, 'transport') || contains(github.event.head_commit.added, 'transport')
     runs-on: ubuntu-latest
 
     steps:
@@ -49,7 +49,7 @@ jobs:
         GITHUB_REPOSITORY: ${{ github.repository }}
 
   build-groot:
-    if: contains(github.event.head_commit.modified, 'groot') || contains(github.event.head_commit.added, 'groot')
+    if: contains(github.event.head_commit.message, 'groot') || contains(github.event.head_commit.added, 'groot')
     runs-on: ubuntu-latest
 
     steps:
