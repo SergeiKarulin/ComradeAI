@@ -16,7 +16,8 @@ channel = connection.channel()
 channel.queue_declare(queue='groot')
 
 def Reply(body):
-    return "- " + str(body) + "\r\n- I am Groot!"
+    #We ignore the body for now. Soon we'll apply agent responce protocol.
+    return "I am Groot!"
 
 def on_request(ch, method, props, body):
     response = Reply(body)
