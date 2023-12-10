@@ -49,7 +49,7 @@ def complete(prompt, strInput):
 def Reply(body):
     global initialPrompt
     #We ignore the body for now. Soon we'll apply agent responce protocol.
-    return complete(initialPrompt, str(body).decode('utf-8'))
+    return complete(initialPrompt, body.decode('utf-8'))
 
 def on_request(ch, method, props, body):
     response = Reply(body)
