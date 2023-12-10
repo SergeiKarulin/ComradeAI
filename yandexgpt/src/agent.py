@@ -43,7 +43,7 @@ def complete(prompt, strInput):
     }
     response = requests.post(url, headers=headers, json=prompt)
     result = response.text
-    return strOutput = result
+    return result
     
 
 def Reply(body):
