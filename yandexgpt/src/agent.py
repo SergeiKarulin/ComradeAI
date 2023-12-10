@@ -22,12 +22,20 @@ initialPrompt = {
     "completionOptions": {
         "stream": False,
         "temperature": 0.6,
-        "maxTokens": "4000"
+        "maxTokens": "2000"
     },
     "messages": [
         {
-            "role": "system",
-            "text": "Ты искусственный разум от компании Яндекс, созданный, чтобы помогать людям. "
+        "role": "system",
+        "text": "Ты умный ассистент"
+        },
+        {
+        "role": "user", 
+        "text": "Привет! Как мне подготовиться к экзаменам?"
+        },
+        {
+        "role": "assistant", 
+        "text": "Привет! По каким предметам?"
         }
     ]
 }
