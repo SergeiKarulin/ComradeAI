@@ -13,7 +13,7 @@ connection = pika.BlockingConnection(
 
 channel = connection.channel()
 
-channel.queue_declare(queue='rpc_queue')
+channel.queue_declare(queue='groot')
 
 def Reply(body):
     return "- " + str(body) + "\r\n- I am Groot!"
@@ -29,6 +29,6 @@ def on_request(ch, method, props, body):
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 channel.basic_qos(prefetch_count=1)
-channel.basic_consume(queue='rpc_queue', on_message_callback=on_request)
+channel.basic_consume(queue='groot', on_message_callback=on_request)
 
 channel.start_consuming()
