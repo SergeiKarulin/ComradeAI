@@ -43,7 +43,7 @@ def complete(prompt, strInput):
         "Authorization": "Api-Key " + yandexCloudAPIKey
     }
     response = requests.post(url, headers=headers, json=prompt)
-    result = response.text.decode('utf-8')
+    result = response.text
     result_json = json.loads(result)
     return result_json['alternatives'][0]['message']['text']
     
