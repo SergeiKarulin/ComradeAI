@@ -27,16 +27,8 @@ initialPrompt = {
     "messages": [
         {
         "role": "system",
-        "text": "Ты умный ассистент"
+        "text": "Ты умный ассистент, созданный, чтобы помогать людям."
         },
-        {
-        "role": "user", 
-        "text": "Привет! Как мне подготовиться к экзаменам?"
-        },
-        {
-        "role": "assistant", 
-        "text": "Привет! По каким предметам?"
-        }
     ]
 }
 
@@ -50,14 +42,14 @@ def complete(prompt, strInput):
         "Authorization": "Api-Key " + yandexCloudAPIKey
     }
     response = requests.post(url, headers=headers, json=prompt)
-    result = response.text
+    result = response.text['alternatives'][0]['message']['text']
     return result
     
 
 def Reply(body):
     global initialPrompt
     #We ignore the body for now. Soon we'll apply agent responce protocol.
-    return complete(initialPrompt, str(body))
+    return complete(initialPrompt, str(body).decode('utf-8'))
 
 def on_request(ch, method, props, body):
     response = Reply(body)
@@ -66,7 +58,7 @@ def on_request(ch, method, props, body):
                      routing_key=props.reply_to,
                      properties=pika.BasicProperties(correlation_id = \
                                                          props.correlation_id),
-                     body=str(response))
+                     body=str(response).decode('utf-8'))
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 channel.basic_qos(prefetch_count=1)
