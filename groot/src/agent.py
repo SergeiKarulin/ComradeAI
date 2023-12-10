@@ -9,7 +9,7 @@ agnetRMQPass = os.getenv('RABBITMQ_DEFAULT_PASS')
 credentials = pika.PlainCredentials(agentRMQLogin, agnetRMQPass)
 
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='RabbitMQCluster01', credentials = credentials, virtual_host = 'demoAccess'))
+    pika.ConnectionParameters(host='65.109.141.56', credentials = credentials, virtual_host = 'demoAccess'))
 
 channel = connection.channel()
 
