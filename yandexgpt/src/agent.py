@@ -49,7 +49,7 @@ def complete(prompt, strInput):
 def Reply(body):
     global initialPrompt
     #We ignore the body for now. Soon we'll apply agent responce protocol.
-    return complete(initialPrompt, body.decode('utf-8'))
+    return complete(initialPrompt, body)
 
 def on_request(ch, method, props, body):
     response = Reply(body)
@@ -58,7 +58,7 @@ def on_request(ch, method, props, body):
                      routing_key=props.reply_to,
                      properties=pika.BasicProperties(correlation_id = \
                                                          props.correlation_id),
-                     body=str(response).encode('utf-8'))
+                     body=response)
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 channel.basic_qos(prefetch_count=1)
