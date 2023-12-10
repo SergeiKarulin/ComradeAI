@@ -2,6 +2,7 @@ import pika
 import os
 from dotenv import load_dotenv
 import requests
+import json
 
 load_dotenv()
 agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_USER')
@@ -42,8 +43,9 @@ def complete(prompt, strInput):
         "Authorization": "Api-Key " + yandexCloudAPIKey
     }
     response = requests.post(url, headers=headers, json=prompt)
-    result = response.text['alternatives'][0]['message']['text']
-    return result
+    result = response.text.decode('utf-8')
+    result_json = json.loads(result)
+    return result_json['alternatives'][0]['message']['text']
     
 
 def Reply(body):
