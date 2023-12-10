@@ -10,7 +10,6 @@ on:
   
 jobs:
   build-groot:
-    if: contains(github.event.head_commit.message, 'groot')
     runs-on: ubuntu-latest
 
     steps:
@@ -30,7 +29,7 @@ jobs:
 
     - name: Set-up environmental files
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/} && echo "WHOAMI = Test" > .env"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/} && echo "WHOAMI = Test" > .env && echo "RABBITMQ_DEFAULT_USER = ${{ secrets.RABBITMQ_DEFAULT_USER }}" >> .env && echo "RABBITMQ_DEFAULT_PASS = ${{ secrets.RABBITMQ_DEFAULT_PASS }}" >> .env"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
 
