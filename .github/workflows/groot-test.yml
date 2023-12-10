@@ -36,7 +36,7 @@ jobs:
 
     - name: Pull updates
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/} && git fetch origin test && git reset --hard origin/test""
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/} && git fetch origin test && git reset --hard origin/test"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
 
