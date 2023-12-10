@@ -1,4 +1,4 @@
-name: Test Build and Deploy
+name: Build and Deploy Groot - Test
 
 on:
   push:
@@ -6,13 +6,11 @@ on:
       - test
     paths:
       - 'transport/**'
-      - 'groot/**'
   workflow_dispatch:
   
 
 jobs:
   build-transport:
-    if: contains(github.event.head_commit.message, 'transport')
     runs-on: ubuntu-latest
 
     steps:
@@ -45,42 +43,5 @@ jobs:
     - name: Re-launch
       run: |
         ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/transport/ && docker-compose down && docker-compose up -d"
-      env:
-        GITHUB_REPOSITORY: ${{ github.repository }}
-
-  build-groot:
-    if: contains(github.event.head_commit.message, 'groot')
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Check out repository
-      uses: actions/checkout@v2
-
-    - name: Set up Docker environment
-      run: |
-        echo "WHOAMI=Test" >> $GITHUB_ENV
-
-    - name: Set up SSH keys
-      run: |
-        echo "${{ secrets.TEST_SSH_KEY }}" > private_key.pem
-        chmod 600 private_key.pem
-        mkdir -p ~/.ssh
-        ssh-keyscan -H ${{ secrets.TEST_IP_ADDRESS }} >> ~/.ssh/known_hosts
-
-    - name: Set-up environmental files
-      run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/groot/ && echo "WHOAMI = Test" > .env"
-      env:
-        GITHUB_REPOSITORY: ${{ github.repository }}
-
-    - name: Build
-      run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/groot/ && git pull origin test && docker-compose build"
-      env:
-        GITHUB_REPOSITORY: ${{ github.repository }}
-    
-    - name: Re-launch
-      run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/groot/ && docker-compose down && docker-compose up -d"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
