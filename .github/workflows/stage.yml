@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-transport:
-    if: contains(github.event.push.commits[*].added, 'transport/') || contains(github.event.push.commits[*].modified, 'transport/')
+    if: contains(github.event.head_commit.modified, 'transport/') || contains(github.event.head_commit.added, 'transport/')
     runs-on: ubuntu-latest
 
     steps:
@@ -47,7 +47,7 @@ jobs:
         GITHUB_REPOSITORY: ${{ github.repository }}
 
   build-groot:
-    if: contains(github.event.push.commits[*].added, 'groot/') || contains(github.event.push.commits[*].modified, 'groot/')
+    if: contains(github.event.head_commit.modified, 'groot/') || contains(github.event.head_commit.added, 'groot/')
     runs-on: ubuntu-latest
 
     steps:

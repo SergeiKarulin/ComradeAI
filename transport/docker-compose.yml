@@ -4,12 +4,9 @@ services:
     image: rabbitmq:3-management
     container_name: RabbitMQCluster01
     restart: always
-    networks:
-      - frontend-network
-      - backend-network
     ports:
-      - "5672:5672" # AMQP protocol port
-      - "15672:15672" # Management UI port
+      - "5672:5672" 
+      - "15672:15672" 
     environment:
       WHOAMI: ${WHOAMI}
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
@@ -25,8 +22,6 @@ services:
     restart: always
     ports:
       - 81:81
-    networks:
-      - frontend-network
 
 volumes:
   rabbitmq-data:

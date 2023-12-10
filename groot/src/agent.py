@@ -8,7 +8,7 @@ load_dotenv()
 agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_USER')
 agnetRMQPass = os.getenv('RABBITMQ_DEFAULT_PASS')
 
-print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 print(agentRMQLogin + " " + agnetRMQPass)
 
 # RabbitMQ Management API URL
