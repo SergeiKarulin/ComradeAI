@@ -46,7 +46,7 @@ def complete(prompt, strInput):
     result = response.text
     result_json = json.loads(result)
     print(result_json)
-    return result_json.alternatives[0].message.text
+    return result_json['result']['alternatives'][0]['message']['text']
     
 
 def Reply(body):
