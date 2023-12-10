@@ -30,15 +30,22 @@ jobs:
 
     - name: Set-up environmental files
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/groot/ && echo "WHOAMI = Test" > .env"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/} && echo "WHOAMI = Test" > .env"
+      env:
+        GITHUB_REPOSITORY: ${{ github.repository }}
+
+    - name: Pull updates
+      run: |
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/} && git pull origin test"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
 
     - name: Build
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/groot/ && git pull origin test && docker-compose build"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/groot/ && docker-compose build"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
+
     
     - name: Re-launch
       run: |
