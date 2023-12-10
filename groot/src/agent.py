@@ -16,7 +16,7 @@ channel = connection.channel()
 channel.queue_declare(queue='rpc_queue')
 
 def Reply(body):
-    return "- " + body + "\r\n- I am Groot!"
+    return "- " + str(body) + "\r\n- I am Groot!"
 
 def on_request(ch, method, props, body):
     response = Reply(body)
