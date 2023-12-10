@@ -19,7 +19,7 @@ channel = connection.channel()
 channel.queue_declare(queue='yandexGPT')
 
 initialPrompt = {
-    "modelUri": "gpt://b1g8p2irpvbrbqlcvbvi/yandexgpt",
+    "modelUri": "gpt://b1g8p2irpvbrbqlcvbvi/yandexgpt-lite",
     "completionOptions": {
         "stream": False,
         "temperature": 0.6,
