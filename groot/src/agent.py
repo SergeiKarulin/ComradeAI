@@ -15,11 +15,11 @@ channel = connection.channel()
 
 channel.queue_declare(queue='rpc_queue')
 
-def Reply():
-    return "I am Groot!"
+def Reply(body):
+    return "- " + body + "\r\n- I am Groot!"
 
 def on_request(ch, method, props, body):
-    response = Reply()
+    response = Reply(body)
 
     ch.basic_publish(exchange='',
                      routing_key=props.reply_to,
