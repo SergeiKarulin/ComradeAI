@@ -45,7 +45,7 @@ def complete(prompt, strInput):
     response = requests.post(url, headers=headers, json=prompt)
     result = response.text
     result_json = json.loads(result)
-    print str(result_json)
+    print(result_json)
     return result_json.alternatives[0].message.text
     
 
