@@ -2,7 +2,7 @@ version: "3.8"
 services:
   i01:
     image: rabbitmq:3-management
-    container_name: i01
+    container_name: mycelium_router
     restart: always
     ports:
       - "5672:5672" 
