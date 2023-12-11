@@ -2,7 +2,7 @@ version: "3.8"
 services:
   RabbitMQCluster01:
     image: rabbitmq:3-management
-    container_name: RabbitMQCluster01
+    container_name: MyceliumRouter01
     restart: always
     ports:
       - "5672:5672" 

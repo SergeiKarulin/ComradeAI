@@ -1,16 +1,16 @@
-name: Build and Deploy Transport - Test
+name: Build and Deploy MyceliumRouter - Test
 
 on:
   push:
     branches:
       - test
     paths:
-      - 'transport/**'
+      - 'mycelium_router/**'
   workflow_dispatch:
   
 
 jobs:
-  build-transport:
+  build-mycelium_router:
     runs-on: ubuntu-latest
 
     steps:
@@ -42,12 +42,12 @@ jobs:
 
     - name: Build
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/transport/ && docker-compose build"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/mycelium_router/ && docker-compose build"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
     
     - name: Re-launch
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/transport/ && docker-compose down && docker-compose up -d"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/mycelium_router/ && docker-compose down && docker-compose up -d"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
