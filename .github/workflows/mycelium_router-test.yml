@@ -42,7 +42,7 @@ jobs:
 
     - name: Build
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/mycelium_router/ && docker-compose build"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/mycelium_router/ && docker-compose build --remove-orphans"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
     
