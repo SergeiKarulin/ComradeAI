@@ -1,6 +1,6 @@
 version: "3.8"
 services:
-  RabbitMQCluster01:
+  MyceliumRouter01:
     image: rabbitmq:3-management
     container_name: MyceliumRouter01
     restart: always
@@ -16,7 +16,7 @@ services:
       - "rabbitmq-data:/var/lib/rabbitmq" 
       - "./initrabbitmq.sh:/initrabbitmq.sh"
 
-  www:
+  MyceliumRouter01_www:
     container_name: nginx
     build: nginx
     restart: always
