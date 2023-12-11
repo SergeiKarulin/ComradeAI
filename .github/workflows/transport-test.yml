@@ -1,0 +1,53 @@
+name: Build and Deploy Transport - Test
+
+on:
+  push:
+    branches:
+      - test
+    paths:
+      - 'transport/**'
+  workflow_dispatch:
+  
+
+jobs:
+  build-transport:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Set up Docker environment
+      run: |
+        echo "WHOAMI=Test" >> $GITHUB_ENV
+
+    - name: Set up SSH keys
+      run: |
+        echo "${{ secrets.TEST_SSH_KEY }}" > private_key.pem
+        chmod 600 private_key.pem
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.TEST_IP_ADDRESS }} >> ~/.ssh/known_hosts
+
+    - name: Set-up environmental files
+      run: |
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/} && echo "WHOAMI = Test" > .env && echo "RABBITMQ_DEFAULT_USER = ${{ secrets.RABBITMQ_DEFAULT_USER }}" >> .env && echo "RABBITMQ_DEFAULT_PASS = ${{ secrets.RABBITMQ_DEFAULT_PASS }}" >> .env"
+      env:
+        GITHUB_REPOSITORY: ${{ github.repository }}
+
+    - name: Pull updates
+      run: |
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/} && git fetch origin test && git reset --hard origin/test"
+      env:
+        GITHUB_REPOSITORY: ${{ github.repository }}
+
+    - name: Build
+      run: |
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/transport/ && docker-compose build"
+      env:
+        GITHUB_REPOSITORY: ${{ github.repository }}
+    
+    - name: Re-launch
+      run: |
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/transport/ && docker-compose down && docker-compose up -d"
+      env:
+        GITHUB_REPOSITORY: ${{ github.repository }}
