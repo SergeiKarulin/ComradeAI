@@ -3,14 +3,12 @@ from dotenv import load_dotenv
 import openai
 import os
 import pika
+from PIL import Image
 import requests
 
 load_dotenv()
 agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_AGENT')
 agnetRMQPass = os.getenv('RABBITMQ_DEFAULT_AGENT_PASS')
-
-openai.api_key = os.getenv('OPENAI_API_KEY')
-print("!!!!!!!!!!!!!!!!!!" + openai.api_key + " ==== " + os.getenv('OPENAI_API_KEY') + "!!!!!!!!!!!!!!!!!!!!!!!")
 
 credentials = pika.PlainCredentials(agentRMQLogin, agnetRMQPass)
 connection = pika.BlockingConnection(
@@ -20,17 +18,20 @@ channel.queue_declare(queue='openai_dall-e')
 
 
 def complete(prompt):
-    response = openai.images.generate(
-        model="dall-e-3",
-        prompt=prompt,
-        size="1024x1024",
-        quality="standard",
-        n=1,
+    try:
+        response = openai.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1,
         )
-    url = response.data[0].url
-    response = requests.get(url)
-    return response.content
-    
+        url = response.data[0].url
+        response = requests.get(url)
+        return response.content
+    except Exception as e:
+        response = Image.new('RGB', (1024, 1024), color='black')
+        return response
 
 def Reply(body):
     return complete(str(body.decode('utf-8')))
