@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  agent:
+    build: .
+    restart: always
+    environment:
+      WHOAMI: ${WHOAMI}
+      RABBITMQ_DEFAULT_AGENT: ${RABBITMQ_DEFAULT_AGENT}
+      RABBITMQ_DEFAULT_AGENT_PASS: ${RABBITMQ_DEFAULT_AGENT_PASS}
+      OPENAI_API_KEY: ${COMRADEAI_AGENTGPT_API_KEY}

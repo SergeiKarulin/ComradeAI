@@ -1,0 +1,4 @@
+openai
+pika
+python-dotenv
+requests
