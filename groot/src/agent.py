@@ -33,3 +33,5 @@ channel.basic_qos(prefetch_count=1)
 channel.basic_consume(queue='groot', on_message_callback=on_request)
 
 channel.start_consuming()
+
+#
