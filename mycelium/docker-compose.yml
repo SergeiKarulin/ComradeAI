@@ -27,8 +27,5 @@ services:
     networks:
       - mycelium
 
-networks:
-  mycelium: {}
-
 volumes:
   rabbitmq-data:
