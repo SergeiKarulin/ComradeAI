@@ -10,7 +10,6 @@ agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_AGENT')
 agnetRMQPass = os.getenv('RABBITMQ_DEFAULT_AGENT_PASS')
 
 openAIAPIKey = os.getenv('OPENAI_API_KEY')
-client = OpenAI()
 
 credentials = pika.PlainCredentials(agentRMQLogin, agnetRMQPass)
 connection = pika.BlockingConnection(
@@ -20,8 +19,7 @@ channel.queue_declare(queue='openai_dall-e')
 
 
 def complete(prompt):
-    global client
-    response = client.images.generate(
+    response = openai.images.generate(
         model="dall-e-3",
         prompt=prompt,
         size="1024x1024",
