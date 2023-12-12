@@ -17,10 +17,6 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v2
 
-    - name: Set up Docker environment
-      run: |
-        echo "WHOAMI=Stage" >> $GITHUB_ENV
-
     - name: Set up SSH keys
       run: |
         echo "${{ secrets.STAGE_SSH_KEY }}" > private_key.pem
@@ -28,17 +24,19 @@ jobs:
         mkdir -p ~/.ssh
         ssh-keyscan -H ${{ secrets.STAGE_IP_ADDRESS }} >> ~/.ssh/known_hosts
 
+    - name: Build
+      run: |
+        ssh -i private_key.pem ${{ secrets.STAGE_SSH_USER }}@${{ secrets.STAGE_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/transport/}" && git pull origin stage && docker-compose build"
+      env:
+        GITHUB_REPOSITORY: ${{ github.repository }}
+
     - name: Set-up environmental files
       run: |
         ssh -i private_key.pem ${{ secrets.STAGE_SSH_USER }}@${{ secrets.STAGE_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/transport/}" && echo "WHOAMI = Stage" > .env && echo "RABBITMQ_DEFAULT_USER = ${{ secrets.RABBITMQ_DEFAULT_USER }}" >> .env && echo "RABBITMQ_DEFAULT_PASS = ${{ secrets.RABBITMQ_DEFAULT_PASS }}" >> .env"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
 
-    - name: Build
-      run: |
-        ssh -i private_key.pem ${{ secrets.STAGE_SSH_USER }}@${{ secrets.STAGE_IP_ADDRESS }} "cd ~/"${GITHUB_REPOSITORY##*/transport/}" && git pull origin stage && docker-compose build"
-      env:
-        GITHUB_REPOSITORY: ${{ github.repository }}
+
     
     - name: Re-launch
       run: |
