@@ -5,8 +5,8 @@ import requests
 import json
 
 load_dotenv()
-agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_USER')
-agnetRMQPass = os.getenv('RABBITMQ_DEFAULT_PASS')
+agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_AGENT')
+agnetRMQPass = os.getenv('RABBITMQ_DEFAULT_AGENT_PASS')
 yandexCloudAPIKey = os.getenv('YANDEXCLOUD_API_KEY')
 
 credentials = pika.PlainCredentials(agentRMQLogin, agnetRMQPass)

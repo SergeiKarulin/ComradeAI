@@ -3,8 +3,8 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_USER')
-agnetRMQPass = os.getenv('RABBITMQ_DEFAULT_PASS')
+agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_AGENT')
+agnetRMQPass = os.getenv('RABBITMQ_DEFAULT_AGENT_PASS')
 
 credentials = pika.PlainCredentials(agentRMQLogin, agnetRMQPass)
 

@@ -25,7 +25,7 @@ jobs:
 
     - name: Set-up environmental files
       run: |
-        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/yandexgpt/ && echo "WHOAMI = Test" > .env && echo "RABBITMQ_DEFAULT_USER = ${{ secrets.RABBITMQ_DEFAULT_AGENT }}" >> .env && echo "RABBITMQ_DEFAULT_PASS = ${{ secrets.RABBITMQ_DEFAULT_AGENT_ASS }}" >> .env && echo "YANDEXCLOUD_API_KEY = ${{ secrets.YANDEXCLOUD_API_KEY }}" >> .env"
+        ssh -i private_key.pem ${{ secrets.TEST_SSH_USER }}@${{ secrets.TEST_IP_ADDRESS }} "cd ~/${GITHUB_REPOSITORY##*/}/yandexgpt/ && echo "WHOAMI = Test" > .env && echo "RABBITMQ_DEFAULT_AGENT = ${{ secrets.RABBITMQ_DEFAULT_AGENT }}" >> .env && echo "RABBITMQ_DEFAULT_AGENT_PASS = ${{ secrets.RABBITMQ_DEFAULT_AGENT_PASS }}" >> .env && echo "YANDEXCLOUD_API_KEY = ${{ secrets.YANDEXCLOUD_API_KEY }}" >> .env"
       env:
         GITHUB_REPOSITORY: ${{ github.repository }}
 
