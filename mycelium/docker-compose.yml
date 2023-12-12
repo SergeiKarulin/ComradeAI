@@ -14,12 +14,18 @@ services:
     volumes:
       - "rabbitmq-data:/var/lib/rabbitmq" 
       - "./initrabbitmq.sh:/initrabbitmq.sh"
+    networks:
+      - mycelium
 
   www:
     build: nginx
     restart: always
     ports:
       - 80:80
+    networks:
+      - mycelium
 
 volumes:
   rabbitmq-data:
+networks:
+  mycelium
