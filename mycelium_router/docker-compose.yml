@@ -2,7 +2,6 @@ version: "3.8"
 services:
   i01:
     image: rabbitmq:3-management
-    container_name: mycelium_router
     restart: always
     ports:
       - "5672:5672" 
@@ -17,7 +16,6 @@ services:
       - "./initrabbitmq.sh:/initrabbitmq.sh"
 
   i01_www:
-    container_name: nginx
     build: nginx
     restart: always
     ports:
