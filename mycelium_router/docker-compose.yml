@@ -19,7 +19,7 @@ services:
     build: nginx
     restart: always
     ports:
-      - 81:81
+      - 82:82
 
 volumes:
   rabbitmq-data:
