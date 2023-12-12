@@ -10,7 +10,7 @@ agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_AGENT')
 agnetRMQPass = os.getenv('RABBITMQ_DEFAULT_AGENT_PASS')
 
 openai.api_key = os.getenv('OPENAI_API_KEY')
-print("!!!!!!!!!!!!!!!!!!" + openai.api_key + "!!!!!!!!!!!!!!!!!!!!!!!")
+print("!!!!!!!!!!!!!!!!!!" + openai.api_key + " ==== " + os.getenv('OPENAI_API_KEY') + "!!!!!!!!!!!!!!!!!!!!!!!")
 
 credentials = pika.PlainCredentials(agentRMQLogin, agnetRMQPass)
 connection = pika.BlockingConnection(
