@@ -13,11 +13,10 @@ credentials = pika.PlainCredentials(agentRMQLogin, agnetRMQPass)
 
 connection = pika.BlockingConnection(
     pika.ConnectionParameters(host='65.109.141.56', credentials = credentials, virtual_host = 'demoAccess'))
+print("Connected...")
 
 channel = connection.channel()
-
-channel.queue_declare(queue='llama2')
-
+channel.queue_declare(queue='llama2') #ToDo. Define queue once after testing everything
 
 def complete(prompt, model_url='http://127.0.0.1:5000/v1/completions', max_tokens=2000):
     payload = {
@@ -58,6 +57,6 @@ def on_request(ch, method, props, body):
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 channel.basic_qos(prefetch_count=1)
-channel.basic_consume(queue='yandexGPT', on_message_callback=on_request)
+channel.basic_consume(queue='llama2', on_message_callback=on_request)
 
 channel.start_consuming()
