@@ -8,12 +8,12 @@ load_dotenv()
 agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_AGENT')
 agnetRMQPass = os.getenv('RABBITMQ_DEFAULT_AGENT_PASS')
 llama2Endpoint = os.getenv('LLAMA2_ENDPOINT')
+llama2API_Key = os.getenv('LLAMA2_API_KEY')
 
 credentials = pika.PlainCredentials(agentRMQLogin, agnetRMQPass)
 
 connection = pika.BlockingConnection(
     pika.ConnectionParameters(host='65.109.141.56', credentials = credentials, virtual_host = 'demoAccess'))
-print("Connected...")
 
 channel = connection.channel()
 channel.queue_declare(queue='llama2') #ToDo. Define queue once after testing everything
@@ -30,9 +30,12 @@ def complete(prompt, model_url='http://127.0.0.1:5000/v1/completions', max_token
             "max_tokens": max_tokens
         }
     try:
-        print(model_url)
-        print(prompt)
-        response = requests.post(model_url, json=payload)
+        url = model_url
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + llama2API_Key
+        }
+        response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         data = response.json()
         return data.get('choices')[0].get('content')
