@@ -26,7 +26,7 @@ def complete(prompt, model_url='http://127.0.0.1:5000/v1/completions', max_token
     }
     payload = {
         "prompt": prompt, 
-        "max_new_tokens": max_tokens,
+        "max_tokens": max_tokens,
         "mode": "chat-instruct",
         "temperature" : 0.7
         }
@@ -34,7 +34,7 @@ def complete(prompt, model_url='http://127.0.0.1:5000/v1/completions', max_token
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         data = response.json()
-        return str(requests) + "\n\r=>=>=>=>=>=>=>=>=>=>=>=>=>=>=>=>=>=>=>=>=>=>=>=>\n\r" + str(data)
+        return data.get('choices')[0].get('text')
     except requests.exceptions.RequestException as e:
         return f"An error occurred: {e}"
     
