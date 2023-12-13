@@ -27,7 +27,7 @@ def complete(prompt, model_url='http://127.0.0.1:5000/v1/completions', max_token
     payload = {
         "prompt": prompt, 
         "max_new_tokens": max_tokens,
-        "mode": "chat",
+        "mode": "chat-instruct",
         "temperature" : 0.7
         }
     try:
