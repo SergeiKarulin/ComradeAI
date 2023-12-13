@@ -19,26 +19,17 @@ channel = connection.channel()
 channel.queue_declare(queue='llama2') #ToDo. Define queue once after testing everything
 
 def complete(prompt, model_url='http://127.0.0.1:5000/v1/completions', max_tokens=2000):
-    payload = {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            "mode": "chat",
-            "max_tokens": max_tokens
-        }
+    url = model_url
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + llama2API_Key
+    }
+    payload = {"prompt": prompt, "max_new_tokens": max_tokens}
     try:
-        url = model_url
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + llama2API_Key
-        }
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         data = response.json()
-        return data.get('choices')[0].get('content')
+        return data.get('choices')[0].get('text')
     except requests.exceptions.RequestException as e:
         print(f"An error occurred: {e}")
         return f"An error occurred: {e}"
