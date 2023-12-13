@@ -31,18 +31,21 @@ def complete(prompt, model_url='http://127.0.0.1:5000/v1/completions', max_token
             "max_tokens": max_tokens
         }
     try:
+        print(model_url)
+        print(prompt)
         response = requests.post(model_url, json=payload)
         response.raise_for_status()
         data = response.json()
         return data.get('choices')[0].get('content')
     except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
         return f"An error occurred: {e}"
     
 
 def Reply(body):
-    global initialPrompt
+    global llama2Endpoint
     #We ignore the body for now. Soon we'll apply agent responce protocol.
-    return complete(initialPrompt, str(body.decode('utf-8')))
+    return complete(str(body.decode('utf-8')), llama2Endpoint)
 
 def on_request(ch, method, props, body):
     response = Reply(body)
@@ -58,5 +61,3 @@ channel.basic_qos(prefetch_count=1)
 channel.basic_consume(queue='yandexGPT', on_message_callback=on_request)
 
 channel.start_consuming()
-
-#
