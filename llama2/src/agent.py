@@ -18,13 +18,18 @@ connection = pika.BlockingConnection(
 channel = connection.channel()
 channel.queue_declare(queue='llama2') #ToDo. Define queue once after testing everything
 
-def complete(prompt, model_url='http://127.0.0.1:5000/v1/completions', max_tokens=2000):
+def complete(prompt, model_url='http://127.0.0.1:5000/v1/completions', max_tokens=3000):
     url = model_url
     headers = {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + llama2API_Key
     }
-    payload = {"prompt": prompt, "max_new_tokens": max_tokens}
+    payload = {
+        "prompt": prompt, 
+        "max_new_tokens": max_tokens,
+        "mode": "chat",
+        "temperature" : 0.7
+        }
     try:
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
