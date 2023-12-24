@@ -7,16 +7,46 @@ import zlib
 from PIL import Image
 import pika
 
+class InvalidPromptException(Exception):
+    pass
+
 # Message class
 class Message:
     def __init__(self, textPrompts=None, imagePrompts=None, urlPrompts=None, sender_id="", send_datetime=None, token_cost=0, cost=0):
-        self.textPrompts = textPrompts if textPrompts else []
-        self.imagePrompts = imagePrompts if imagePrompts else []
-        self.urlPrompts = urlPrompts if urlPrompts else []
         self.sender_id = sender_id
         self.send_datetime = send_datetime if send_datetime else datetime.datetime.now()
         self.token_cost = token_cost
         self.cost = cost
+        self.textPrompts = self.validate_text_prompts(textPrompts) if textPrompts else []
+        self.imagePrompts = self.validate_image_prompts(imagePrompts) if imagePrompts else []
+        self.urlPrompts = self.validate_url_prompts(urlPrompts) if urlPrompts else []
+
+    def validate_text_prompts(self, textPrompts):
+        valid_roles = {'system', 'user', 'assistant'}
+        for i, prompt in enumerate(textPrompts):
+            if not isinstance(prompt, dict):
+                raise InvalidPromptException(f"Error: Prompt at index {i} is not a dictionary.")
+            if 'role' not in prompt or 'content' not in prompt:
+                raise InvalidPromptException(f"Error: Prompt at index {i} is missing 'role' or 'content' key.")
+            if prompt['role'] not in valid_roles:
+                raise InvalidPromptException(f"Error: 'role' value in prompt at index {i} is invalid. Must be one of {valid_roles}.")
+        return textPrompts
+    
+    def validate_url_prompts(self, urlPrompts):
+        for i, prompt in enumerate(urlPrompts):
+            if not isinstance(prompt, dict):
+                raise InvalidPromptException(f"Error in URL prompt at index {i}: Not a dictionary.")
+            if 'url' not in prompt or 'mime_type' not in prompt:
+                raise InvalidPromptException(f"Error in URL prompt at index {i}: Missing 'url' or 'mime_type' key.")
+            if not isinstance(prompt['url'], str) or not isinstance(prompt['mime_type'], str):
+                raise InvalidPromptException(f"Error in URL prompt at index {i}: 'url' and 'mime_type' must be strings.")
+        return urlPrompts
+    
+    def validate_image_prompts(self, imagePrompts):
+        for i, img in enumerate(imagePrompts):
+            if not isinstance(img, Image.Image):
+                raise InvalidPromptException(f"Error in image prompt at index {i}: Not a Pillow Image object.")
+        return imagePrompts
 
 # Dialog class
 class Dialog:
@@ -162,7 +192,9 @@ class Mycelium:
         print(f"Sent message to server with correlation_id: {self.correlation_id}")
         self.connection.process_data_events(time_limit=None)
         return self.dialogs[0]
-                
+        
+      
+            
     def print_dialogs(self):
         for dialog in self.dialogs:
             print(f"Dialog ID: {dialog.dialog_id}")
