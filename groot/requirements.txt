@@ -1,2 +1,6 @@
+ComradeAI
 pika
+Pillow
 python-dotenv
+requests
+debugpy

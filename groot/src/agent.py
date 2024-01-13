@@ -1,37 +1,28 @@
-import pika
-import os
+from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt
 from dotenv import load_dotenv
+import os
+import asyncio
 
 load_dotenv()
 agentRMQLogin = os.getenv('RABBITMQ_DEFAULT_AGENT')
-agnetRMQPass = os.getenv('RABBITMQ_DEFAULT_AGENT_PASS')
+agentRMQPass = os.getenv('RABBITMQ_DEFAULT_AGENT_PASS')
+agentRMQHost = os.getenv('RABBITMQ_DEFAULT_HOST')
+agentRMQvHost = os.getenv('RABBITMQ_DEFAULT_VHOST')
+agentRMQQueueName = os.getenv('QUEUE')
 
-credentials = pika.PlainCredentials(agentRMQLogin, agnetRMQPass)
+async def server_logic(dialog):
+    subAccount = ""
+    if len(dialog.messages)>0:
+        subAccount = dialog.messages[-1].subAccount
+    prompts = [UnifiedPrompt(content_type="text", content="I am Groot!", mime_type="text/plain")]
+    message = Message(role="assistant", unified_prompts = prompts, sender_info="Groot", costData={'agentCost' : 0.0, 'networkComission' : 0.0, 'currency' : 'USD'}, subAccount=subAccount)
+    new_dialog = Dialog(dialog_id=dialog.dialog_id, endUserCommunicationID=dialog.endUserCommunicationID, requestAgentConfig=dialog.requestAgentConfig, messages=[message])
+    await myceliumRouter.send_to_mycelium(new_dialog, routingStrategy = {'strategy' : 'direct', 'params' : dialog.reply_to})
 
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='65.109.141.56', credentials = credentials, virtual_host = 'demoAccess'))
+myceliumRouter = Mycelium(host=agentRMQHost, vhost=agentRMQvHost, username=agentRMQLogin, password=agentRMQPass, input_chanel=agentRMQQueueName, message_received_callback=server_logic)
 
-channel = connection.channel()
+async def main():
+    await myceliumRouter.start_server()
 
-channel.queue_declare(queue='groot')
-
-def Reply(body):
-    #We ignore the body for now. Soon we'll apply agent responce protocol. Als we'll be more careful processing byte strings
-    return "I am Groot!"
-
-def on_request(ch, method, props, body):
-    response = Reply(body)
-
-    ch.basic_publish(exchange='',
-                     routing_key=props.reply_to,
-                     properties=pika.BasicProperties(correlation_id = \
-                                                         props.correlation_id),
-                     body=str(response))
-    ch.basic_ack(delivery_tag=method.delivery_tag)
-
-channel.basic_qos(prefetch_count=1)
-channel.basic_consume(queue='groot', on_message_callback=on_request)
-
-channel.start_consuming()
-
-#
+if __name__ == "__main__":
+    asyncio.run(main())
