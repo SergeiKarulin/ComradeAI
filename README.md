@@ -7,4 +7,4 @@ By linking different AI agents into a collaborative network, Comrade AI enhances
 
 In short, Comrade AI delivers a unified, efficient, and hassle-free way to integrate and manage multiple AI services, catering to your specific requirements and simplifying the process of harnessing the power of AI.
 
-As for December 24, 2023 framework supports OpenAI DALLE-3, OpenAI GPT4/Vision, Vertex AI/Google Gemini Pro/Pro Vision, Yandex GPT 2 in synchomnic modes. We are working on getting access to Claude API. 
+As for January 13, 2024 framework supports OpenAI DALLE-3, OpenAI GPT3.5 Turbo, GPT4/Vision, Vertex AI/Google Gemini Pro/Pro Vision, Yandex GPT v2 in asynchomnic mode, Meta LLaMa v2. We are working on getting access to Claude API. 
