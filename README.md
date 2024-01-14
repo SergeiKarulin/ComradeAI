@@ -31,8 +31,7 @@ Elements within a Message that contain the actual content, specified by type, co
 This function is crucial for processing responses from AI agents. It is called every time Mycelium receives a response, adding it to the corresponding Dialog.
 
 ### Groot Agent: Testing Connectivity to Mycelium
-The Groot agent serves an important role in the ComradeAI framework — it's used primarily for testing and confirming a successful connection to Mycelium. By sending a simple "Hello" message (or anything else) to the Groot agent, developers can easily verify that their setup is correctly configured and that they are able to communicate with the Mycelium network. This step is crucial in ensuring that the environment is ready for more complex interactions with other AI agents.
-
+The Groot agent is utilized primarily for testing and confirming a successful connection to the Mycelium network. When you send a message to the Groot agent, it always responds with "I am Groot!" This consistent response is an easy and reliable way to verify that your setup is correctly configured and that you are successfully communicating with Mycelium. If you receive this response, you can be confident that your environment is ready for more advanced interactions with other AI agents.
 
 ### Example: Sending a "Hello" Message to Groot Agent
 
@@ -74,6 +73,17 @@ async def hello_world():
 asyncio.run(hello_world())
 asyncio.run(myceliumRouter.start_server(allowNewDialogs=True))
 ```
+
+##### Expected Behavior
+Sending the "Hello" Message: When you run hello_world(), it sends a message to the Groot agent.
+
+Starting the Mycelium Server: By running myceliumRouter.start_server(allowNewDialogs=True), you start the Mycelium server with the capability to allow new dialogs.
+
+###### What to Look For
+Once the script is executed, you should see the response "I am Groot!" printed in your console. This confirms that the message has been successfully sent and received by the Groot agent.
+The printed response indicates a successful connection to the Mycelium network and proper functioning of the message handling setup in your script.
+If you receive this response, you can be confident that your system is correctly set up and ready for more complex interactions with other AI agents.
+Remember, the Groot agent is always free of charge, making it an ideal choice for initial testing and connectivity verification.
 
 #### Summary
 This guide introduces the core concepts of the ComradeAI package and demonstrates how to send a message to an AI agent and process the response. It provides a foundational understanding for new users, guiding them through the initial steps of using ComradeAI for AI interactions.
