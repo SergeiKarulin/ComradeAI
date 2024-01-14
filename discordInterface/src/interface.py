@@ -223,7 +223,7 @@ async def gemini_pro(interaction: Interaction,
     if sub_model is not None or max_output_tokens is not None or temperature is not None or top_p is not None or top_k is not None or stop_sequences is not None:
         tmpConfig = {"model" : sub_model, "max_output_tokens": max_output_tokens, "temperature" : temperature, "top_p" : top_p, "top_k" : top_k, "stopSequences" : stop_sequences}
         requestAgentConfig = json.dumps(tmpConfig)
-    agent = "Google_GeminiProVisoin"
+    agent = "Google_GeminiProVision"
     await interaction.response.send_message(f"Agent set Gemini Pro/Pro Vision, config: " + str(tmpConfig))
     
 @bot.slash_command(name="chat_gpt_completions", description="Agent OpenAI Completions: GPT3-Turbo, GPT4, GPT4 vision to generate text from text and images")
