@@ -95,7 +95,7 @@ Be ready for the request to take 30-60 seconds.
 
 This guide demonstrates how to convert a DOCX file into prompts and analyze it using the ComradeAI Mycelium framework. Replace the your_comradeai_token with your actual ComradeAI token and ensure the DOCX file path is correctly set.
 
-## Processing a DOCX File with OpenAI Completions (GPT 4 Turbo Preview)
+## Processing an XLSX File with OpenAI Completions (GPT 4 Turbo Preview)
 
 This guide will demonstrate how to process and analyze an XLSX file containing WHO statistics using the ComradeAI Mycelium framework.
 
