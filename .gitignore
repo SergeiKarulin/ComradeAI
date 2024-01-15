@@ -6,3 +6,4 @@ venv/
 *.log
 *.vscode*
 *launch.json*
+.tmp

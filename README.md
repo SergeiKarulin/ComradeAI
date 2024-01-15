@@ -42,6 +42,20 @@ The Groot agent is utilized primarily for testing and confirming a successful co
 
 ### Example: Sending a "Hello" Message to Groot Agent
 
+This guide demonstrates how to check ComradeAI connectivity and token validity using Groot.
+
+#### Prerequisites
+
+- Python environment
+
+#### ComradeAI Installation
+Before you begin, make sure you have the ComradeAI package installed:
+
+```bash
+pip install ComradeAI
+
+```
+
 #### Step 1: Importing Modules
 ```python
 from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt
