@@ -9,6 +9,13 @@ In short, Comrade AI delivers a unified, efficient, and hassle-free way to integ
 
 As for January 13, 2024 framework supports OpenAI DALLE-3, OpenAI GPT3.5 Turbo, GPT4/Vision, Vertex AI/Google Gemini Pro/Pro Vision, Yandex GPT v2 in asynchomnic mode, Meta LLaMa v2. We are working on getting access to Claude API. 
 
+## Table of Contents
+- [Introduction](README.md)
+- [Availabe AI Agents](docs/Agents.md)
+- [Agent Usage Examples](docs/AgentExamples.md)
+- [Document Routines](docs/DocumentRoutines.md)
+- [Agent-Agent Interaction Example](docs/AgentAgentInteractions.md)
+
 
 ## Getting Started with ComradeAI
 
