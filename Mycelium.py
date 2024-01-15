@@ -291,6 +291,7 @@ class Mycelium:
             'costCurrency': last_message.costData['currency'],
             'routingStrategy' : routingStrategy['strategy'],
             'routingParams' : routingStrategy['params'],
+            'endUserCommunicationID' : dialog.endUserCommunicationID,
             'subAccount' : last_message.subAccount
         }
         if dialog.requestAgentConfig is not None:
