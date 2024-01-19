@@ -83,7 +83,7 @@ class RoutingStrategy:
 # Message class
 class Message:
     def __init__(self, role, unified_prompts, sender_info="", subAccount = "", send_datetime=None, diagnosticData=None, agentConfig = None,
-                 billingData = [], routingStrategy = RoutingStrategy(), myceliumVersion = "0.18"):
+                 billingData = None, routingStrategy = RoutingStrategy(), myceliumVersion = "0.18"):
         self.sender_info = sender_info
         self.subAccount = subAccount
         self.role = self.validate_role(role)
@@ -91,7 +91,9 @@ class Message:
         self.diagnosticData = diagnosticData
         self.agentConfig = agentConfig
         self.unified_prompts = self.validate_unified_prompts(unified_prompts) if unified_prompts else []
-        self.billingData = Message.validate_billing_data(billingData)
+        if billingData is None:
+            billingData = []
+        self.billingData = self.validate_billing_data(billingData)
         self.routingStrategy = routingStrategy
         self.myceliumVersion = myceliumVersion
         
@@ -142,9 +144,8 @@ class Message:
             elif prompt.content_type == 'video' and not prompt.mime_type.startswith('video/'):
                 raise InvalidPromptException(f"Error in video prompt at index {i}: MIME type should start with 'video/'.")
         return unified_prompts
-    
-    @staticmethod
-    def validate_billing_data(billing_data):
+
+    def validate_billing_data(self, billing_data):
         if not isinstance(billing_data, list):
             raise InvalidBillingDataException("Billing data should be a list.")
         for item in billing_data:
@@ -165,10 +166,12 @@ class Message:
 # Dialog class
 class Dialog:
     def __init__(self, dialog_id = str(uuid.uuid4()), messages=None, context=None, reply_to = None, lastMessageDiagnosticData = None, requestAgentConfig = None,
-                 lastMessageBillingData = [], endUserCommunicationID = None, lastMessageRoutingStrategy = RoutingStrategy(), myceliumVersion = "0.18"):
+                 lastMessageBillingData = None, endUserCommunicationID = None, lastMessageRoutingStrategy = RoutingStrategy(), myceliumVersion = "0.18"):
         self.dialog_id = dialog_id
         self.reply_to = reply_to
         self.messages = context if context else []
+        if lastMessageBillingData is None:
+            lastMessageBillingData = []
         self.lastMessageBillingData = lastMessageBillingData
         if messages:
             self.messages.extend(messages)
