@@ -1,4 +1,4 @@
-############## Mycelium Version 0.18 of 2024.01.18 ##############
+############## Mycelium Version 0.18 of 2024.01.17 ##############
 
 import aio_pika
 import base64
@@ -8,6 +8,7 @@ import io
 import json
 import os
 from PIL import Image
+import re
 import threading
 import uuid
 import zlib

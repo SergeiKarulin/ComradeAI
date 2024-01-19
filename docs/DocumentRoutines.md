@@ -99,14 +99,9 @@ This guide demonstrates how to convert a DOCX file into prompts and analyze it u
 
 This guide will demonstrate how to process and analyze an XLSX file containing WHO statistics using the ComradeAI Mycelium framework.
 
-### Important Note on XLSX File Processing
-Before proceeding, please be aware of the following limitation in the current version of XlsxToPromptsConverter:
-
-- Merged Cells: The XlsxToPromptsConverter does not currently support processing of merged cells in XLSX files. This means that if your XLSX document contains merged cells, they may not be correctly interpreted or converted into prompts.This functionality is planned for future versions of ComradeAI, aiming to enhance the converter's capabilities and provide more accurate processing of complex XLSX documents.
-
 ### Prerequisites
 - ComradeAI package
-- An XLSX file for analysis (you can find one in docx/examples directory)
+- An XLSX file for analysis (you can find one in docx/examples directory), XlsxToPromptsConverter also support XLSX files with merged cells
 - ComradeAI Token
 
 ### Installation

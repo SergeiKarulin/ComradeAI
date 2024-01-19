@@ -7,8 +7,10 @@
 #debugpy.listen(('0.0.0.0', 5678))
 #debugpy.wait_for_client()
 
-from  ComradeAI.DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConverter
-from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt
+#from  ComradeAI.DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConverter
+#from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt
+from  DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConverter
+from Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
 from dotenv import load_dotenv
 import io
 from io import BytesIO
@@ -43,7 +45,7 @@ async def message_received_handler(dialog):
     for message in dialog.messages:
         for prompt in message.unified_prompts:
             if prompt.content_type == 'text':
-                channel = bot.get_channel(dialog.endUserCommunicationID)
+                channel = bot.get_channel(int(dialog.endUserCommunicationID))
                 await send_long_message(channel, prompt.content)
             elif prompt.content_type == 'image':                  
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
@@ -52,9 +54,8 @@ async def message_received_handler(dialog):
                 await channel.send(file=nextcord.File(fp=tmp_file_path, filename='tmpImage.png'))
                 os.remove(tmp_file_path)
 
-
 dialog_id = str(uuid.uuid4())
-dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to = comradeai_token)
+dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
 myceliumRouter = Mycelium(ComradeAIToken=comradeai_token, message_received_callback=message_received_handler, dialogs={})
 myceliumRouter.dialogs[dialog_id]=dialog
 
@@ -118,12 +119,12 @@ async def on_message(message):
                 else:
                     prompts.append(UnifiedPrompt(content_type="url", content=url, mime_type=getMimeType(url)))
         # Initialize Mycelium with user token. Everything else is default.
-        new_message = Message(role="user", unified_prompts = prompts, sender_info="Discord User", subAccount=message.author.id)
+        new_message = Message(role="user", unified_prompts=prompts, sender_info="Discord User", subAccount=str(message.author.id), routingStrategy=RoutingStrategy("direct", agent))
         dialog_ids = list(myceliumRouter.dialogs.keys())
         myceliumRouter.dialogs[dialog_ids[0]].messages.append(new_message)
-        myceliumRouter.dialogs[dialog_ids[0]].endUserCommunicationID = message.channel.id
+        myceliumRouter.dialogs[dialog_ids[0]].endUserCommunicationID = str(message.channel.id)
         myceliumRouter.dialogs[dialog_ids[0]].requestAgentConfig = requestAgentConfig 
-        await myceliumRouter.send_to_mycelium(myceliumRouter.dialogs[dialog_ids[0]], routingStrategy = {'strategy' : 'auto', 'params' : agent})
+        await myceliumRouter.send_to_mycelium(dialog_ids[0])
 
 @bot.slash_command(name="dall-e_3", description="Agent OpenAI DALL-e 3 to generate images from text")
 async def dall_e_3(

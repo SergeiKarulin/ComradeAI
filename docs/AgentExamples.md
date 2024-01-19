@@ -57,12 +57,12 @@ async def send_request_to_dalle(comradeai_token, myceliumRouter):
     }
 
     # Configure the RequestAgentConfig as a JSON string
-    requestAgentConfig = json.dumps({
+    requestAgentConfig = {
         "size": "1024x1024",
         "style": "vivid",
         "n": 1,
         "quality": "standard"
-    })
+    }
 
     # Create a Dialog instance with a unique ID and configure it
     dialog_id = str(uuid.uuid4())
@@ -92,7 +92,6 @@ if __name__ == "__main__":
 
 The script initializes the ComradeAI Mycelium router and sets up a dialog with a textual description for image generation.
 The message_received_handler handles the response from DALL-e 3. If the response contains an image, it is displayed using the PIL library. This script can handle both bytes and PIL Image objects.
-The requestAgentConfig is formatted as a JSON string to ensure it meets the ComradeAI framework's requirements.
 
 ## Google/VertexAI Gemini Pro Vision Agent Usage Example
 
@@ -132,14 +131,14 @@ async def send_request_to_gemini_pro(comradeai_token, myceliumRouter):
     }
 
     # Configure the RequestAgentConfig as a JSON string
-    requestAgentConfig = json.dumps({
+    requestAgentConfig = {
         "model": "gemini-pro-vision",
         "max_output_tokens": 1024,
         "temperature": 0.7,
         "top_p": 1.0,
         "top_k": 40
         # Add other parameters as needed
-    })
+    }
 
     # Create a Dialog instance with a unique ID and configure it
     dialog_id = str(uuid.uuid4())
@@ -173,4 +172,3 @@ if __name__ == "__main__":
 ### Explanation
 - The script initializes the ComradeAI Mycelium router and sets up a dialog with a text prompt for processing.
 - The message_received_handler handles the response from the Gemini Pro Vision agent. In this example, it simply prints the text content of the response, but it can be modified to handle images or videos.
-- The requestAgentConfig is formatted as a JSON string to ensure it meets the requirements of the ComradeAI framework.
