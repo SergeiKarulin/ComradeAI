@@ -1,5 +1,4 @@
 from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
-#from Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
 from dotenv import load_dotenv
 import os
 import asyncio
@@ -25,11 +24,13 @@ async def server_logic(dialog):
         #If we enable error message for testing, newestMessagesToSend must be set to 2
     except Exception as ex:
         print("Failed to send message. Error: " + str(ex))
+    return False #When False we clean the dialogs dict in Mycelium, when True we recalculate all the total values for the current dialog.
 
 myceliumRouter = Mycelium(host=agentRMQHost, vhost=agentRMQvHost, username=agentRMQLogin, password=agentRMQPass, input_chanel=agentRMQQueueName, message_received_callback=server_logic)
 
 async def main():
-    await myceliumRouter.start_server()
+    #Agents use allowNewDialogs=True as they receive them, clients use False as they generate dialogs, but don't receive new ones, unless there is logic to process them.
+    await myceliumRouter.start_server(allowNewDialogs=True)
 
 if __name__ == "__main__":
     asyncio.run(main())

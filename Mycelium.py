@@ -348,7 +348,7 @@ class Mycelium:
         )
         self.chanel = await self.connection.channel()
             
-    async def start_server(self, allowNewDialogs = True):
+    async def start_server(self, allowNewDialogs = False):
         try:
             await self.connect_to_mycelium()
             queue = await self.chanel.declare_queue(self.input_chanel)
@@ -376,8 +376,10 @@ class Mycelium:
                                 self.dialogs[dialog_id].messages[-1].diagnosticData = diagnosticData
                         self.dialogs[dialog_id]._update_totals()
                         if self.message_received_callback:
-                            await self.message_received_callback(self.dialogs[dialog_id])
-                        self.dialogs[dialog_id]._update_totals() #We call it for the 2nd time to update after possible manipulations in message_received_callback()
+                            if await self.message_received_callback(self.dialogs[dialog_id]):
+                                self.dialogs[dialog_id]._update_totals() #We call it for the 2nd time to update after possible manipulations in message_received_callback()
+                            else:
+                                self.dialogs = {}
         except Exception as ex:
             print("Failed to start server. Error: " + str(ex))
 

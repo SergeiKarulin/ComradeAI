@@ -53,6 +53,7 @@ async def message_received_handler(dialog):
                     tmp_file_path = tmp_file.name
                 await channel.send(file=nextcord.File(fp=tmp_file_path, filename='tmpImage.png'))
                 os.remove(tmp_file_path)
+    return True
 
 dialog_id = str(uuid.uuid4())
 dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
