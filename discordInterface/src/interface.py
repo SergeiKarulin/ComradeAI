@@ -7,10 +7,10 @@
 #debugpy.listen(('0.0.0.0', 5678))
 #debugpy.wait_for_client()
 
-#from  ComradeAI.DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConverter
-#from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt
-from  DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConverter
-from Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
+from ComradeAI.DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConverter
+from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
+# from  DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConverter
+# from Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
 from dotenv import load_dotenv
 import io
 from io import BytesIO

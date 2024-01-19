@@ -322,7 +322,7 @@ class Dialog:
 
 # Mycelium class
 class Mycelium:
-    def __init__(self, host="65.109.141.56", vhost="myceliumVersion018", username=None, password=None, input_chanel=None, output_chanel=None, ComradeAIToken=None, dialogs=None, message_received_callback=None, lastReceivedMessageBillingData = [], myceliumVersion = "0.18"):
+    def __init__(self, host="65.109.141.56", vhost="myceliumVersion018", username=None, password=None, input_chanel=None, output_chanel=None, ComradeAIToken=None, dialogs=None, message_received_callback=None, lastReceivedMessageBillingData = {}, myceliumVersion = "0.18"):
         self.myceliumVersion = myceliumVersion
         self.input_chanel = input_chanel if ComradeAIToken is None else ComradeAIToken
         self.output_chanel = output_chanel if output_chanel is not None else "myceliumRouter" + self.myceliumVersion
@@ -368,7 +368,7 @@ class Mycelium:
                         self.dialogs[dialog_id].decompress_and_deserialize(message.body)
                         # Updating billing data to apply new bills from Router
                         lastMessageBillingData = json.loads(message.headers.get("billingData", []))
-                        self.lastReceivedMessageBillingData = lastMessageBillingData
+                        self.lastReceivedMessageBillingData[dialog_id] = lastMessageBillingData
                         if self.dialogs[dialog_id].messages:
                             self.dialogs[dialog_id].messages[-1].billingData = lastMessageBillingData
                             diagnosticData = headers.get('diagnosticData', None)
@@ -406,7 +406,7 @@ class Mycelium:
                 temp_dialog.messages = temp_dialog.messages[-newestMessagesToSend:]
                 for msg in temp_dialog.messages:
                     msg.routingStrategy = RoutingStrategy("direct", temp_dialog.reply_to)
-            tmpBillingData = self.lastReceivedMessageBillingData
+            tmpBillingData = tmpBillingData = self.lastReceivedMessageBillingData.get(dialog_id, [])
             tmpBillingData.extend(temp_dialog.messages[-1].billingData)
             temp_dialog.messages[-1].billingData = tmpBillingData
             last_message.billingData = tmpBillingData
