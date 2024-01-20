@@ -362,13 +362,14 @@ class Mycelium:
                         dialog = Dialog(reply_to=message.reply_to, dialog_id=message.correlation_id)
                         dialog_id = dialog.dialog_id #We use it further to find the dialog after adding to self.dialogs.
                         if dialog_id in self.dialogs:
+                            dialog.decompress_and_deserialize(message.body)
                             self.dialogs[dialog_id].messages += dialog.messages
                             self.dialogs[dialog_id].requestAgentConfig = dialog.requestAgentConfig
                         elif dialog_id not in self.dialogs and allowNewDialogs:
+                            dialog.decompress_and_deserialize(message.body)
                             self.dialogs[dialog_id] = dialog
                         else:
                             continue
-                        self.dialogs[dialog_id].decompress_and_deserialize(message.body)
                         # Updating billing data to apply new bills from Router
                         lastMessageBillingData = json.loads(message.headers.get("billingData", []))
                         self.lastReceivedMessageBillingData[dialog_id] = lastMessageBillingData
@@ -379,7 +380,7 @@ class Mycelium:
                                 self.dialogs[dialog_id].messages[-1].diagnosticData = diagnosticData
                         self.dialogs[dialog_id]._update_totals()
                         if self.message_received_callback:
-                            if await self.message_received_callback(self.dialogs[dialog_id]):
+                            if await self.message_received_callback(dialog):
                                 self.dialogs[dialog_id]._update_totals() #We call it for the 2nd time to update after possible manipulations in message_received_callback()
                             else:
                                 self.dialogs = {}

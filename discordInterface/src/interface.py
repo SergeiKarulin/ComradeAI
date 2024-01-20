@@ -9,8 +9,8 @@
 
 from ComradeAI.DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConverter
 from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
-# from  DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConverter
-# from Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
+#from  DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConverter
+#from Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
 from dotenv import load_dotenv
 import io
 from io import BytesIO
@@ -125,7 +125,7 @@ async def on_message(message):
         myceliumRouter.dialogs[dialog_ids[0]].messages.append(new_message)
         myceliumRouter.dialogs[dialog_ids[0]].endUserCommunicationID = str(message.channel.id)
         myceliumRouter.dialogs[dialog_ids[0]].requestAgentConfig = requestAgentConfig 
-        await myceliumRouter.send_to_mycelium(dialog_ids[0])
+        await myceliumRouter.send_to_mycelium(dialog_ids[0], isReply=False)
 
 @bot.slash_command(name="dall-e_3", description="Agent OpenAI DALL-e 3 to generate images from text")
 async def dall_e_3(
