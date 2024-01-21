@@ -227,6 +227,37 @@ async def gemini_pro(interaction: Interaction,
         requestAgentConfig = json.dumps(tmpConfig)
     agent = "Google_GeminiProVision"
     await interaction.response.send_message(f"Agent set Gemini Pro/Pro Vision, config: " + str(tmpConfig))
+
+@bot.slash_command(name="claude", description="Anthropic CLAUDE 2.1 text-2-text model. Shows great creativity perfomance.")
+async def claude(interaction: Interaction,
+        temperature: float = SlashOption(
+            name="temperature",
+            description="The lower the more more deterministic response is. 0.1 to 1, default 1.",
+            required=False, 
+            min_value=0.1,
+            max_value=1.0
+        ),
+        top_k : int = SlashOption(
+            name="top_k",
+            description="Narrows the set of tokens to select. To highter the more variation. Default 50",
+            required=False, 
+            min_value=1,
+            max_value=200
+        ),
+        stop_sequences: str = SlashOption(
+            name="stop_sequences",
+            description="A sequence where the API will stop generating further tokens.",
+            required=False
+        )):
+    global agent
+    global requestAgentConfig
+    requestAgentConfig = None
+    tmpConfig = None
+    if temperature is not None or top_k is not None or stop_sequences is not None:
+        tmpConfig = {"temperature" : temperature, "top_k" : top_k, "stop_sequences" : stop_sequences}
+        requestAgentConfig = json.dumps(tmpConfig)
+    agent = "Anthropic_CLAUDE2.1"
+    await interaction.response.send_message(f"Agent set Anthropic CLAUDE 2.1, config: " + str(tmpConfig))
     
 @bot.slash_command(name="chat_gpt_completions", description="Agent OpenAI Completions: GPT3-Turbo, GPT4, GPT4 vision to generate text from text and images")
 async def chat_gpt_completions(
