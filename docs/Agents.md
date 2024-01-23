@@ -21,12 +21,10 @@ The `routingStrategy` is a crucial component in directing your requests to the c
    ```
 
 2. **Define RoutingStrategy:**
-    Incorporate the agent variable into the routing strategy which is Mycelium.send_to_mycelium() parameter.
+    Incorporate the agent variable into the routing strategy which is Mycelium.Message constructor (__init__) parameter.
    ```python
-    routingStrategy = {
-        'strategy': 'direct',  # Means you know which agent you need and there is no need for Mycelium to auto-define it.
-        'params': agent
-    }
+    routingStrategy = RoutingStrategy("direct", agent)
+    # Means you know which agent you need and there is no need for Mycelium to auto-define it.
    ```
 
 3. **Configure the RequestAgentConfig:**

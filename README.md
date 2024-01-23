@@ -60,12 +60,13 @@ pip install ComradeAI
 
 #### Step 1: Importing Modules
 ```python
-from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt
+from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
 import uuid
 import asyncio
 ```
 
-#### Step 2: Defining the Message Handler
+#### Step 2: Defining the incoming message hadler
+This function processed the dialog that returns from the Mycelium as a responce to your request. Convetionally the dialog contains only one message that were aded by the agent to yuor dialog.
 ```python
 async def message_received_handler(dialog):
     for message in dialog.messages:
@@ -74,27 +75,38 @@ async def message_received_handler(dialog):
 ```
 
 #### Step 3: Initializing Mycelium
+The only thing you need is token. 
 ```python
 comradeai_token = 'your_comradeai_token'  # Replace with your actual token
-myceliumRouter = Mycelium(ComradeAIToken=comradeai_token, message_received_callback=message_received_handler)
+myceliumRouter = Mycelium(ComradeAIToken=comradeai_token, message_received_callback=message_received_handler, dialogs={})
 ```
 
 #### Step 4: Sending a Message
 ```python
 async def hello_world():
+    #MyceliumRounter can handle any amount of dialogs. It distinguish them by unique ids.
     dialog_id = str(uuid.uuid4())
     dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
+    myceliumRouter.dialogs[dialog_id]=dialog
+
+    #Routing strategy defines what network does with the message. The simples strategy is "direct" when you specify the agent you want to process your dialog.
+    #Agent groot is a service agent to check your access to the network.
+    routing_strategy = RoutingStrategy("direct", "groot")
+    #Each message can contain various parts called "Unified Prompts". Each part can be text, image, url, and others.
+    #When the agent process the message it filters unsupported Unified Prompts types.
     hello_prompt = UnifiedPrompt(content_type="text", content="Hi there!", mime_type="text/plain")
-    hello_message = Message(role="user", unified_prompts=[hello_prompt])
-    dialog.messages.append(hello_message)
-    routing_strategy = {'strategy': 'auto', 'params': 'groot'}
-    await myceliumRouter.send_to_mycelium(dialog, routing_strategy)
+    hello_message = Message(role="user", unified_prompts=[hello_prompt], routingStrategy=routing_strategy)
+    
+    myceliumRouter.dialogs[dialog_id].messages.append(hello_message)
+
+    await myceliumRouter.send_to_mycelium(dialog_id, isReply=False)
 ```
 
 #### Step 5: Running the Script
 ```python
 asyncio.run(hello_world())
-asyncio.run(myceliumRouter.start_server(allowNewDialogs=True))
+asyncio.run(myceliumRouter.start_server(allowNewDialogs=False))
+#If your app doesn't act as an Agent keep this allowNewDialogs False to avoid any possible SPAM from other network participants.
 ```
 
 ##### Expected Behavior
