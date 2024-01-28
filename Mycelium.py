@@ -6,7 +6,6 @@ import copy
 import datetime
 import io
 import json
-import os
 from PIL import Image
 import threading
 import uuid
@@ -325,7 +324,7 @@ class Dialog:
 
 # Mycelium class
 class Mycelium:
-    def __init__(self, host="65.109.141.56", vhost="myceliumVersion018", username=None, password=None, input_chanel=None, output_chanel=None, ComradeAIToken=None, dialogs=None, message_received_callback=None, lastReceivedMessageBillingData = {}, myceliumVersion = "0.18"):
+    def __init__(self, host="65.109.141.56", vhost="myceliumVersion018", username=None, password=None, input_chanel=None, output_chanel=None, ComradeAIToken=None, dialogs=None, message_received_callback=None, lastReceivedMessageBillingData = {}, serverAsyncModeThreads = 10, myceliumVersion = "0.18"):
         self.myceliumVersion = myceliumVersion
         self.input_chanel = input_chanel if ComradeAIToken is None else ComradeAIToken
         self.output_chanel = output_chanel if output_chanel is not None else "myceliumRouter" + self.myceliumVersion
@@ -338,6 +337,7 @@ class Mycelium:
         self.chanel = None
         self.lastReceivedMessageBillingData = lastReceivedMessageBillingData
         self.message_received_callback = message_received_callback
+        self.serverAsyncModeThreads = serverAsyncModeThreads
 
     def dialog_count(self):
         return len(self.dialogs)
@@ -350,6 +350,7 @@ class Mycelium:
             virtualhost=self.rabbitmq_vhost
         )
         self.chanel = await self.connection.channel()
+        await self.chanel.set_qos(prefetch_count=self.serverAsyncModeThreads)
             
     async def start_server(self, allowNewDialogs = False):
         try:
