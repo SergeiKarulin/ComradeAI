@@ -186,6 +186,177 @@ async def dall_e_3(
     dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
     await interaction.response.send_message(f"Agent set OpenAI DALL-e 3, config: " + str(tmpConfig))
 
+<<<<<<< HEAD
+=======
+
+@bot.slash_command(name="mindsimulation_steos_voice", description="An amazing Text to Speech model for Russian and English")
+async def mindsimulation_steos_voice(
+        interaction: Interaction,
+        voice_id: int = SlashOption(
+            name="voice_id",
+            description="Choose a voice. There are 500+ of them, here are some examples",
+            required=False,
+            choices={
+                "Stanislav Kontsevich": 198,
+                "Maria Voice of radio host Maria Zagumyonnova": 18,
+                "The voice of professional announcer Ilya Rogovin": 19,
+                "Olaf Character voice from Disney Infinity": 413,
+                "Anna Omutkova Professional Russian dubbing actor": 360,
+                "Alpatkin Alexander Professional Russian dubbing actor": 359,
+                "Han Solo": 408,
+                "Bart Simpson": 232,
+                "Homer Simpson": 229,
+                "Thrall from Warcraft": 260,
+                "Acolyte from Warcraft": 263,
+                "A female voice with a pleasant timbre": 72,
+                "A male voice with a pleasant timbre": 64,
+                "A male voice with a pleasant timbre (2)": 63,
+                "A female voice with a pleasant tone": 35,
+                "A voice of an elder narrator character": 23
+            },
+        ),
+        file_format: str = SlashOption(
+            name="file_format",
+            description="Output file format",
+            required=False, 
+            choices={
+                "mp3": "mp3",
+                "ogg": "ogg",
+                "wav": "wav"
+            }
+        ),
+    ):
+    requestAgentConfig = None
+    tmpConfig = None
+    if voice_id is not None or file_format is not None:
+        tmpConfig = {"voice_id" : voice_id, "file_format" : file_format}
+        requestAgentConfig = json.dumps(tmpConfig)
+    agent = "MindSimulation_SteosVoice"
+    dialog_id = str(interaction.user.id)
+    dialog_ids = list(myceliumRouter.dialogs.keys())
+    if not dialog_id in dialog_ids:
+        dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
+        myceliumRouter.dialogs[dialog_id]=dialog
+    dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
+    await interaction.response.send_message(f"Agent set Mind Simulation SteosVoice, config: " + str(tmpConfig))
+    
+@bot.slash_command(name="stable_diffusion_txt2img", description="Agent Stable Diffusion - realistic imaging")
+async def stable_diffusion_txt2img(
+        interaction: Interaction,
+        negative_prompt: str = SlashOption(
+            name="negative_prompt",
+            description="Negative prompt. If not set up, default negative prompt will be used",
+            required=False,
+        ),
+        n_steps : int = SlashOption(
+            name="n_steps",
+            description="Amount of iterations during generation and refinery. Defaults to 100",
+            required=False, 
+            min_value=1
+        ),
+        high_noise_frac: float = SlashOption(
+            name="high_noise_frac",
+            description="The fraction of highly noicy iterations. Defaults to 0.8.",
+            required=False,
+            min_value=0.1
+        )
+    ):
+    requestAgentConfig = None
+    tmpConfig = None
+    if negative_prompt is not None or n_steps is not None or high_noise_frac is not None :
+        tmpConfig = {"negative_prompt" : negative_prompt, "n_steps" : n_steps, "high_noise_frac": high_noise_frac}
+        requestAgentConfig = json.dumps(tmpConfig)
+    agent = "StabeDiffusion_Text2Image"
+    dialog_id = str(interaction.user.id)
+    dialog_ids = list(myceliumRouter.dialogs.keys())
+    if not dialog_id in dialog_ids:
+        dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
+        myceliumRouter.dialogs[dialog_id]=dialog
+    dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
+    await interaction.response.send_message(f"Agent set Stabe Diffusion XL Text-to-Image, config: " + str(tmpConfig))
+
+
+@bot.slash_command(name="mbart", description="Agent Meta MBART to translate between 50 languages.")
+async def mbart(
+        interaction: Interaction,
+        source_language: str = SlashOption(
+            name="source_language",
+            description="The language of your original text",
+            required=True,
+            choices={
+                "Russian": "ru_RU",
+                "English": "en_XX",
+                "Chinese": "zh_CN",
+                "Arabic": "ar_AR",
+                "Bengali": "bn_IN",
+                "French": "fr_XX",
+                "German": "de_DE",
+                "Greek": "el_GR",
+                "Hebrew": "he_IL",
+                "Hindi": "hi_IN",
+                "Indonesian": "id_ID",
+                "Italian": "it_IT",
+                "Japanese": "ja_XX",
+                "Korean": "ko_KR",
+                "Malay": "ms_MY",
+                "Polish": "pl_PL",
+                "Portuguese": "pt_XX",
+                "Romanian": "ro_RO",
+                "Spanish": "es_XX",
+                "Swedish": "sv_SE",
+                "Thai": "th_TH",
+                "Turkish": "tr_TR",
+                "Vietnamese": "vi_VN",
+                "Urdu" : "ur_PK"
+            },
+        ),
+        target_language: str = SlashOption(
+            name="target_language",
+            description="The language you want to translate to",
+            required=True, 
+            choices={
+                "Russian": "ru_RU",
+                "English": "en_XX",
+                "Chinese": "zh_CN",
+                "Arabic": "ar_AR",
+                "Bengali": "bn_IN",
+                "French": "fr_XX",
+                "German": "de_DE",
+                "Greek": "el_GR",
+                "Hebrew": "he_IL",
+                "Hindi": "hi_IN",
+                "Indonesian": "id_ID",
+                "Italian": "it_IT",
+                "Japanese": "ja_XX",
+                "Korean": "ko_KR",
+                "Malay": "ms_MY",
+                "Polish": "pl_PL",
+                "Portuguese": "pt_XX",
+                "Romanian": "ro_RO",
+                "Spanish": "es_XX",
+                "Swedish": "sv_SE",
+                "Thai": "th_TH",
+                "Turkish": "tr_TR",
+                "Vietnamese": "vi_VN",
+                "Urdu" : "ur_PK"
+            }
+        )
+    ):
+    requestAgentConfig = None
+    tmpConfig = None
+    if source_language is not None or target_language is not None:
+        tmpConfig = {"src_lang" : source_language, "target_lang" : target_language}
+        requestAgentConfig = json.dumps(tmpConfig)
+    agent = "Meta_MBART"
+    dialog_id = str(interaction.user.id)
+    dialog_ids = list(myceliumRouter.dialogs.keys())
+    if not dialog_id in dialog_ids:
+        dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
+        myceliumRouter.dialogs[dialog_id]=dialog
+    dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
+    await interaction.response.send_message(f"Agent set Meta MBART, config: " + str(tmpConfig))
+
+>>>>>>> test
 @bot.slash_command(name="gemini_pro", description="Multimodal Gemini Pro Vision from Vertex AI/Google to generate text from text, images and video")
 async def gemini_pro(interaction: Interaction,
         sub_model: str = SlashOption(
@@ -423,8 +594,15 @@ async def restart(
     if not dialog_id in dialog_ids:
         dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
         myceliumRouter.dialogs[dialog_id]=dialog
+<<<<<<< HEAD
         dialog_configurations[dialog_id] = {"agent": "groot", "requestAgentConfig": ""}
     
+=======
+        if dialog_id not in dialog_configurations or dialog_configurations[dialog_id] is None:
+            dialog_configurations[dialog_id] = {"agent": "groot", "requestAgentConfig": ""}
+        else:
+            dialog_configurations[dialog_id]['requestAgentConfig'] = ""
+>>>>>>> test
     if context:
         myceliumRouter.dialogs[dialog_id] = Dialog(messages=[Message(role="system", unified_prompts = [UnifiedPrompt(content_type = 'text', content = context, mime_type = 'text/plain')], sender_info="system")], dialog_id=dialog_id, reply_to = comradeai_token)
     else:
