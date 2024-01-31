@@ -259,12 +259,12 @@ async def stable_diffusion_txt2img(
         interaction: Interaction,
         negative_prompt: str = SlashOption(
             name="negative_prompt",
-            description="Negative prompt. Will be added to Context if Context is set up",
+            description="Negative prompt. If not set up, default negative prompt will be used",
             required=False,
         ),
-        images_to_generate : int = SlashOption(
-            name="images_to_generate",
-            description="The number of images to generate. Defaults to 1.",
+        n_steps : int = SlashOption(
+            name="n_steps",
+            description="Amount of iterations during generation and refinery. Defaults to 100",
             required=False, 
             min_value=1
         ),
@@ -277,8 +277,8 @@ async def stable_diffusion_txt2img(
     ):
     requestAgentConfig = None
     tmpConfig = None
-    if negative_prompt is not None or images_to_generate is not None or high_noise_frac is not None :
-        tmpConfig = {"negative_prompt" : negative_prompt, "images_to_generate" : images_to_generate, "high_noise_frac": high_noise_frac}
+    if negative_prompt is not None or n_steps is not None or high_noise_frac is not None :
+        tmpConfig = {"negative_prompt" : negative_prompt, "n_steps" : n_steps, "high_noise_frac": high_noise_frac}
         requestAgentConfig = json.dumps(tmpConfig)
     agent = "StabeDiffusion_Text2Image"
     dialog_id = str(interaction.user.id)
@@ -318,10 +318,10 @@ async def mbart(
                 "Romanian": "ro_RO",
                 "Spanish": "es_XX",
                 "Swedish": "sv_SE",
-                "Tagalog": "tl_XX",
                 "Thai": "th_TH",
                 "Turkish": "tr_TR",
                 "Vietnamese": "vi_VN",
+                "Urdu" : "ur_PK"
             },
         ),
         target_language: str = SlashOption(
@@ -349,10 +349,10 @@ async def mbart(
                 "Romanian": "ro_RO",
                 "Spanish": "es_XX",
                 "Swedish": "sv_SE",
-                "Tagalog": "tl_XX",
                 "Thai": "th_TH",
                 "Turkish": "tr_TR",
                 "Vietnamese": "vi_VN",
+                "Urdu" : "ur_PK"
             }
         )
     ):
@@ -627,7 +627,7 @@ async def restart(
     if not dialog_id in dialog_ids:
         dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
         myceliumRouter.dialogs[dialog_id]=dialog
-        if dialog_configurations[dialog_id] is None:
+        if dialog_id not in dialog_configurations or dialog_configurations[dialog_id] is None:
             dialog_configurations[dialog_id] = {"agent": "groot", "requestAgentConfig": ""}
         else:
             dialog_configurations[dialog_id]['requestAgentConfig'] = ""
