@@ -101,6 +101,8 @@ def create_unified_prompt_from_url(url):
         converter = XlsxToPromptsConverter()
         prompts = converter.convert(io.BytesIO(content))
         return prompts
+    elif mime_type in ["audio/mpeg", "audio/ogg", "audio/wav"]:
+        return [UnifiedPrompt(content_type="audio", content=content, mime_type=mime_type)]
     return False
 
 async def send_long_message(channel, text, max_length=2000):
@@ -369,6 +371,42 @@ async def mbart(
         myceliumRouter.dialogs[dialog_id]=dialog
     dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
     await interaction.response.send_message(f"Agent set Meta MBART, config: " + str(tmpConfig))
+    
+@bot.slash_command(name="whisper_v3", description="OpenAI Whisper Large v3 - Speech to Text in multiple languages")
+async def whisper_v3(interaction: Interaction,
+        language: str = SlashOption(
+            name="language",
+            description="Target text language",
+            required=False,
+            choices={
+                "Russian": "ru",
+                "English": "en",
+                "Chinese": "zh",
+                "Arabic": "ar",
+                "French": "fr",
+                "Indonesian": "id",
+                "Italian": "it",
+                "Korean": "ko",
+                "Portuguese": "pt",
+                "Spanish": "es",
+                "Thai": "th",
+                "Turkish": "tr",
+                "Urdu" : "ur"
+            }
+        )):
+    requestAgentConfig = None
+    tmpConfig = None
+    if language is not None:
+        tmpConfig = {"language" : language}
+        requestAgentConfig = json.dumps(tmpConfig)
+    agent = "Whisper_v3_Large"
+    dialog_id = str(interaction.user.id)
+    dialog_ids = list(myceliumRouter.dialogs.keys())
+    if not dialog_id in dialog_ids:
+        dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
+        myceliumRouter.dialogs[dialog_id]=dialog
+    dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
+    await interaction.response.send_message(f"Agent set OpenAI Whisper Large v3, config: " + str(tmpConfig))
 
 @bot.slash_command(name="gemini_pro", description="Multimodal Gemini Pro Vision from Vertex AI/Google to generate text from text, images and video")
 async def gemini_pro(interaction: Interaction,
