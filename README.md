@@ -7,9 +7,9 @@ By linking different AI agents into a collaborative network, Comrade AI enhances
 
 In short, Comrade AI delivers a unified, efficient, and hassle-free way to integrate and manage multiple AI services, catering to your specific requirements and simplifying the process of harnessing the power of AI.
 
-As for January 22, 2024 framework supports OpenAI DALLE-3, OpenAI GPT3.5 Turbo, GPT4/Vision, Vertex AI/Google Gemini Pro/Pro Vision, Yandex GPT v2 in asynchronous mode, Meta LLaMa v2 and wonderful Claude 2.1 from Anthropic.
+As for February 7, 2024 framework supports OpenAI DALLE-3, OpenAI GPT3.5 Turbo, GPT4/Vision, Vertex AI/Google Gemini Pro/Pro Vision, Yandex GPT v2 in asynchronous mode, Meta LLaMa v2 and wonderful Claude 2.1 from Anthropic, OpenAI Whisper Large v3, Stable Diffusion XL, Meta MBART.
 
-The upcoming agents are mBART (sequence-to-sequence), Whisper, and WaveNet or Mozilla TTS.
+The upcoming agents are Sber model Zoo and WaveNet or Mozilla TTS.
 
 ## Table of Contents
 - [Introduction](README.md)
