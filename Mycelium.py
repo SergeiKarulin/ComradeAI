@@ -251,15 +251,15 @@ class Dialog:
             raise ValueError("Can only add Dialog and string or [string] instances together")
         if isinstance(other, str):
             combined_messages = self.messages + [Message(role="user", unified_prompts=[UnifiedPrompt(content=other, content_type="text", mime_type="text/plain")],  send_datetime=datetime.datetime.now())]
-            newDialog = Dialog(messages=combined_messages)
+            newDialog = Dialog(messages=combined_messages, dialog_id=self.dialog_id, reply_to=self.reply_to, requestAgentConfig=self.requestAgentConfig, endUserCommunicationID=self.endUserCommunicationID)
         elif isinstance(other, list):
             combined_messages = self.messages
             for strvalue in other:
                 combined_messages.append(Message(role="user", unified_prompts=[UnifiedPrompt(content=strvalue, content_type="text", mime_type="text/plain")],  send_datetime=datetime.datetime.now()))
-            newDialog = Dialog(messages=combined_messages)
+            newDialog = Dialog(messages=combined_messages, dialog_id=self.dialog_id, reply_to=self.reply_to, requestAgentConfig=self.requestAgentConfig, endUserCommunicationID=self.endUserCommunicationID)
         elif isinstance(other, Dialog):
             combined_messages = self.messages + other.messages
-            newDialog = Dialog(messages=combined_messages)
+            newDialog = Dialog(messages=combined_messages, dialog_id=self.dialog_id, reply_to=self.reply_to, requestAgentConfig=self.requestAgentConfig, endUserCommunicationID=self.endUserCommunicationID)
         return newDialog
     
     def __radd__(self, other):
@@ -267,16 +267,16 @@ class Dialog:
             raise ValueError("Can only add Dialog and string or [string] instances together")
         if isinstance(other, str):
             combined_messages = [Message(role="user", unified_prompts=[UnifiedPrompt(content=other, content_type="text", mime_type="text/plain")],  send_datetime=datetime.datetime.now())] + self.messages
-            newDialog = Dialog(messages=combined_messages)
+            newDialog = Dialog(messages=combined_messages, dialog_id=self.dialog_id, reply_to=self.reply_to, requestAgentConfig=self.requestAgentConfig, endUserCommunicationID=self.endUserCommunicationID)
         elif isinstance(other, list):
             combined_messages = []
             for strvalue in other:
                 combined_messages.append(Message(role="user", unified_prompts=[UnifiedPrompt(content=strvalue, content_type="text", mime_type="text/plain")],  send_datetime=datetime.datetime.now()))
             combined_messages.extend(self.messages)
-            newDialog = Dialog(messages=combined_messages)
+            newDialog = Dialog(messages=combined_messages, dialog_id=self.dialog_id, reply_to=self.reply_to, requestAgentConfig=self.requestAgentConfig, endUserCommunicationID=self.endUserCommunicationID)
         elif isinstance(other, Dialog):
             combined_messages = self.messages + other.messages
-            newDialog = Dialog(messages=combined_messages)
+            newDialog = Dialog(messages=combined_messages, dialog_id=other.dialog_id, reply_to=other.reply_to, requestAgentConfig=other.requestAgentConfig, endUserCommunicationID=other.endUserCommunicationID)
         return newDialog
     
     def __mul__(self, other):
@@ -508,6 +508,16 @@ class Mycelium:
     def dialog_count(self):
         return len(self.dialogs)
     
+    def Merge(self, dialogs):
+        #TODO. Make a proper merge. Requires uuuid for messages or manual checksum calculation for each message
+        if isinstance(dialogs, Dialog):
+            dialogs = [dialogs]
+        for dialog in dialogs:
+            if isinstance(dialog, Dialog):
+                self.dialogs[dialog.dialog_id] = dialog
+            else:
+                raise TypeError("You can only merge a Dialog object or a list of Dialog objects")
+    
     def Dialog(self, textPrompt = None, imagePrompt = None, audioPrompt = None, audioMimeType = None, documentPrompt = None, documentMimeType = None, url = None, urlMimeType = None, agent = None):
         newDialog = Dialog.create(mycelium = self, textPrompt = textPrompt, imagePrompt = imagePrompt, audioPrompt = audioPrompt, audioMimeType = audioMimeType, documentPrompt = documentPrompt, documentMimeType = documentMimeType, url = url, urlMimeType = urlMimeType)
         newDialog._update_totals()
@@ -675,19 +685,20 @@ class Agent:
                 async for message in queue_iter:
                     async with message.process():
                         headers = message.headers
-                        dialog = Dialog(reply_to=message.reply_to, dialog_id=message.correlation_id)
-                        dialog_id = dialog.dialog_id #We use it further to find the dialog after adding to mycelium.dialogs.
+                        new_dialog = Dialog(reply_to=message.reply_to, dialog_id=message.correlation_id)
+                        dialog_id = new_dialog.dialog_id #We use it further to find the dialog after adding to mycelium.dialogs.
                         if dialog_id in self.mycelium.dialogs:
-                            dialog.decompress_and_deserialize(message.body)
-                            self.mycelium.dialogs[dialog_id].messages += dialog.messages
-                            self.mycelium.dialogs[dialog_id].requestAgentConfig = dialog.requestAgentConfig
+                            new_dialog.decompress_and_deserialize(message.body)
+                            self.mycelium.dialogs[dialog_id].messages += new_dialog.messages
+                            self.mycelium.dialogs[dialog_id].requestAgentConfig = new_dialog.requestAgentConfig
                         break
             await self.mycelium.connection.close()
-            return self.mycelium.dialogs[dialog_id]    
+            return self.mycelium.dialogs[dialog_id]
         elif isinstance(dialogs, list):
+        #TODO. Implement logic for a lsit of Dialogs
             for dlg in dialogs:
                 if not isinstance(dlg, Dialog):
-                    raise TypeError("Invoke takes only a Dialog object or a list of Dialog objects")
+                    raise TypeError("InvokeSync takes only a Dialog object or a list of Dialog objects")
             return True
         
     def Invoke(self, dialogs) -> Dialog:
@@ -717,24 +728,21 @@ class Agent:
             )
 
             def callback(ch, method, properties, body):
-                dialog = Dialog(reply_to=properties.reply_to, dialog_id=properties.correlation_id)
-                dialog_id = dialog.dialog_id
+                new_dialog = Dialog(reply_to=properties.reply_to, dialog_id=properties.correlation_id)
+                dialog_id = new_dialog.dialog_id
                 if dialog_id in self.mycelium.dialogs:
-                    dialog.decompress_and_deserialize(body)
-                    self.mycelium.dialogs[dialog_id].messages += dialog.messages
-                    self.mycelium.dialogs[dialog_id].requestAgentConfig = dialog.requestAgentConfig
+                    new_dialog.decompress_and_deserialize(body)
+                    self.mycelium.dialogs[dialog_id].messages += new_dialog.messages
+                    self.mycelium.dialogs[dialog_id].requestAgentConfig = new_dialog.requestAgentConfig
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 self.mycelium.chanel.stop_consuming()
 
             self.mycelium.chanel.basic_consume(queue=self.mycelium.input_chanel, on_message_callback=callback, auto_ack=False)
 
             self.mycelium.chanel.start_consuming()
-
-            #self.mycelium.connection.close()
-
             return self.mycelium.dialogs.get(dialogs.dialog_id)
-
         elif isinstance(dialogs, list):
+        #TODO. Implement logic for a lsit of Dialogs
             for dlg in dialogs:
                 if not isinstance(dlg, Dialog):
                     raise TypeError("InvokeSync takes only a Dialog object or a list of Dialog objects")

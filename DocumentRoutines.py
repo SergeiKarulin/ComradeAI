@@ -1,5 +1,5 @@
 ############## Mycelium Version 0.20 of 2024.02.10 ##############
-
+#Documents routines are deprecated. All the functions moved to Processors and became DOCXLoader and XLSXLoader.
 from ComradeAI.Mycelium import UnifiedPrompt
 
 from docx import Document
