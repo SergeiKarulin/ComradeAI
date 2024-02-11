@@ -1,4 +1,4 @@
-############## Mycelium Version 0.18 of 2024.01.18 ##############
+############## Mycelium Version 0.20 of 2024.02.11 ##############
 
 import aio_pika
 import base64
@@ -6,9 +6,11 @@ import copy
 import datetime
 import io
 import json
+import pika
 from PIL import Image
 import threading
 import uuid
+import warnings
 import zlib
 
 class InvalidPromptException(Exception):
@@ -95,6 +97,17 @@ class Message:
         self.billingData = self.validate_billing_data(billingData)
         self.routingStrategy = routingStrategy
         self.myceliumVersion = myceliumVersion
+
+    def __str__(self):
+        if not self.unified_prompts or self.unified_prompts == []:
+            return "Message is empty."
+        messages_str_list = []
+        for k, prompt in enumerate(self.unified_prompts, start=1):
+            if prompt.content_type == "text":
+                messages_str_list.append(f"Prompt {k}: content type: {prompt.content_type}, mime-type: {prompt.mime_type}, content: {prompt.content}")   
+            else:
+                messages_str_list.append(f"Prompt {k}: content type: {prompt.content_type}, mime-type: {prompt.mime_type}.")  
+        return "\n".join(messages_str_list)
         
     def validate_role(self, role):
         valid_roles = {'system', 'user', 'assistant'}
@@ -164,9 +177,9 @@ class Message:
 
 # Dialog class
 class Dialog:
-    def __init__(self, dialog_id = str(uuid.uuid4()), messages=None, context=None, reply_to = None, lastMessageDiagnosticData = None, requestAgentConfig = None,
+    def __init__(self, dialog_id = None, messages=None, context=None, reply_to = None, lastMessageDiagnosticData = None, requestAgentConfig = None,
                  lastMessageBillingData = None, endUserCommunicationID = None, lastMessageRoutingStrategy = RoutingStrategy(), myceliumVersion = "0.18"):
-        self.dialog_id = dialog_id
+        self.dialog_id = dialog_id if dialog_id is not None else str(uuid.uuid4())
         self.reply_to = reply_to
         self.messages = context if context else []
         if lastMessageBillingData is None:
@@ -180,6 +193,157 @@ class Dialog:
         self.endUserCommunicationID = endUserCommunicationID
         self.lastMessageRoutingStrategy = lastMessageRoutingStrategy
         self.myceliumVersion = myceliumVersion
+        
+    @classmethod
+    def create(self, mycelium, textPrompt = None, imagePrompt = None, audioPrompt = None, audioMimeType = None, documentPrompt = None, documentMimeType = None, url = None, urlMimeType = None):
+        unifiedPrompts = []
+        if textPrompt:
+            if not isinstance(textPrompt, str) and not isinstance(textPrompt, list):
+                raise TypeError ("textPrompt must be either a string or a list of strings")
+            if isinstance(textPrompt, str):
+                textPrompt = [textPrompt]
+            if isinstance(textPrompt, list):
+                for text in textPrompt:
+                    if isinstance(text, str):
+                        unifiedPrompts.append(UnifiedPrompt(content_type="text", content=text, mime_type="text/plain"))
+                    else:
+                        raise TypeError ("textPrompt must be either a string or a list of strings")
+        if imagePrompt:
+            if not isinstance(imagePrompt, Image.Image) and not isinstance(imagePrompt, list):
+                raise TypeError ("imagePrompt must be either a Pillow Image or a list of Pillow Images")
+            if isinstance(imagePrompt, Image.Image):
+                imagePrompt = [imagePrompt]
+            if isinstance(imagePrompt, list):
+                for img in imagePrompt:
+                    if isinstance(img, Image.Image):
+                        unifiedPrompts.append(UnifiedPrompt(content_type="image", content=img, mime_type=f"image/{imagePrompt.format.lower()}"))
+                    else:
+                        raise TypeError ("imagePrompt must be either a Pillow Image or a list of Pillow Images")
+        if audioPrompt and audioMimeType:
+            if not isinstance(audioPrompt, bytearray) and not isinstance(audioPrompt, list):
+                raise TypeError("audioPrompt must be either a Byte array or a list of byte arrays")
+            if not isinstance(audioMimeType, str) and not isinstance(audioMimeType, list):
+                raise TypeError("audioMimeType must be either a string starting with audio/ or a list of strings where each starts with audio/")
+            if isinstance(audioPrompt, bytearray):
+                audioPrompt = [audioPrompt]
+            if isinstance(audioMimeType, str):
+                audioMimeType = [audioMimeType]
+            i = 0
+            for audio in audioPrompt:
+                if i < len(audioMimeType):
+                    mimeType = audioMimeType[i]
+                else:
+                    mimeType = audioMimeType[0]
+                if isinstance(audio, bytearray) and mimeType.startswith("audio/"):
+                    unifiedPrompts.append(UnifiedPrompt(content_type="audio", content=audioPrompt, mime_type=mimeType))
+                else:
+                    raise TypeError("audioMimeType must be either a string starting with audio/ or a list of strings where each starts with audio/")
+                i += 1
+        if documentPrompt and documentMimeType:
+            a = 1
+            #TODO. Finish for 3 document types (XLSXm DOCX, XML???)
+        message = Message(role="user", unified_prompts=unifiedPrompts, sender_info="ComradeAI Client", send_datetime=datetime.datetime.now())
+        resultDialog = Dialog(messages=[message], reply_to=mycelium.input_chanel)
+        return (resultDialog)
+
+    def __add__(self, other):
+        if not isinstance(other, Dialog) and not isinstance(other, str) and not isinstance(other, list):
+            raise ValueError("Can only add Dialog and string or [string] instances together")
+        if isinstance(other, str):
+            combined_messages = self.messages + [Message(role="user", unified_prompts=[UnifiedPrompt(content=other, content_type="text", mime_type="text/plain")],  send_datetime=datetime.datetime.now())]
+            newDialog = Dialog(messages=combined_messages)
+        elif isinstance(other, list):
+            combined_messages = self.messages
+            for strvalue in other:
+                combined_messages.append(Message(role="user", unified_prompts=[UnifiedPrompt(content=strvalue, content_type="text", mime_type="text/plain")],  send_datetime=datetime.datetime.now()))
+            newDialog = Dialog(messages=combined_messages)
+        elif isinstance(other, Dialog):
+            combined_messages = self.messages + other.messages
+            newDialog = Dialog(messages=combined_messages)
+        return newDialog
+    
+    def __radd__(self, other):
+        if not isinstance(other, Dialog) and not isinstance(other, str) and not isinstance(other, list):
+            raise ValueError("Can only add Dialog and string or [string] instances together")
+        if isinstance(other, str):
+            combined_messages = [Message(role="user", unified_prompts=[UnifiedPrompt(content=other, content_type="text", mime_type="text/plain")],  send_datetime=datetime.datetime.now())] + self.messages
+            newDialog = Dialog(messages=combined_messages)
+        elif isinstance(other, list):
+            combined_messages = []
+            for strvalue in other:
+                combined_messages.append(Message(role="user", unified_prompts=[UnifiedPrompt(content=strvalue, content_type="text", mime_type="text/plain")],  send_datetime=datetime.datetime.now()))
+            combined_messages.extend(self.messages)
+            newDialog = Dialog(messages=combined_messages)
+        elif isinstance(other, Dialog):
+            combined_messages = self.messages + other.messages
+            newDialog = Dialog(messages=combined_messages)
+        return newDialog
+    
+    def __mul__(self, other):
+        if not isinstance(other, Dialog) and not isinstance(other, str) and not isinstance(other, list):
+            raise ValueError("Can only intersect Dialog and string or [string] instances together")
+        if len(self.messages)<1:
+            raise IndexError("Your dialog must have at least one message.")
+        if isinstance(other, str):
+            newDialog = copy.deepcopy(self)
+            newDialog.messages[-1].unified_prompts = newDialog.messages[-1].unified_prompts + [UnifiedPrompt(content=other, content_type="text", mime_type="text/plain")]
+            resut = newDialog
+        elif isinstance(other, list):
+            resultDialogs = []
+            for strvalue in other:
+                if not isinstance(strvalue, str):
+                    raise ValueError("The intersected list must contain strings only")
+                newDialog = copy.deepcopy(self)
+                newDialog.messages[-1].unified_prompts = self.messages[-1].unified_prompts + [UnifiedPrompt(content=strvalue, content_type="text", mime_type="text/plain")]
+                resultDialogs.append(newDialog)
+            resut = resultDialogs
+        elif isinstance(other, Dialog):
+            if len(other.messages) < 1:
+                raise IndexError("Both dialogs must have at least one message.")
+            result = copy.deepcopy(self)
+            result.messages[-1].unified_prompts = result.messages[-1].unified_prompts + other.messages[-1].unified_prompts
+            resut = result
+        return resut
+    
+    def __rmul__(self, other):
+        if not isinstance(other, Dialog) and not isinstance(other, str) and not isinstance(other, list):
+            raise ValueError("Can only intersect Dialog and string or [string] instances together")
+        if len(self.messages)<1:
+            raise IndexError("Your dialog must have at least one message.")
+        if isinstance(other, str):
+            newDialog = copy.deepcopy(self)
+            newDialog.messages[-1].unified_prompts = [UnifiedPrompt(content=other, content_type="text", mime_type="text/plain")] + newDialog.messages[-1].unified_prompts
+            resut = newDialog
+        elif isinstance(other, list):
+            resultDialogs = []
+            for strvalue in other:
+                if not isinstance(strvalue, str):
+                    raise ValueError("The intersected list must contain strings only")
+                newDialog = copy.deepcopy(self)
+                newDialog.messages[-1].unified_prompts = [UnifiedPrompt(content=strvalue, content_type="text", mime_type="text/plain")] + newDialog.messages[-1].unified_prompts
+                resultDialogs.append(newDialog)
+            resut = resultDialogs
+        elif isinstance(other, Dialog):
+            if len(other.messages) < 1:
+                raise IndexError("Both dialogs must have at least one message.")
+            result = copy.deepcopy(self)
+            result.messages[-1].unified_prompts = other.messages[-1].unified_prompts + result.messages[-1].unified_prompts
+            resut = result
+        return resut
+    
+    def __str__(self):
+        if not self.messages or self.messages == []:
+            return "Dialog is empty."
+        messages_str_list = []
+        for i, message in enumerate(self.messages, start=1):
+            message_str = f"Message {i}: {message.role}"
+            messages_str_list.append(message_str)
+            for k, prompt in enumerate(message.unified_prompts, start=1):
+                if prompt.content_type == "text":
+                    messages_str_list.append(f"Prompt {k}: content type: {prompt.content_type}, mime-type: {prompt.mime_type}, content: {prompt.content}")   
+                else:
+                    messages_str_list.append(f"Prompt {k}: content type: {prompt.content_type}, mime-type: {prompt.mime_type}.")  
+        return "\n".join(messages_str_list)
 
     def _update_totals(self):
         self.message_count = len(self.messages)
@@ -325,6 +489,8 @@ class Dialog:
 # Mycelium class
 class Mycelium:
     def __init__(self, host="65.109.141.56", vhost="myceliumVersion018", username=None, password=None, input_chanel=None, output_chanel=None, ComradeAIToken=None, dialogs=None, message_received_callback=None, lastReceivedMessageBillingData = {}, serverAsyncModeThreads = 10, myceliumVersion = "0.18"):
+        #TODO. Don't forget to switch to 020 after testing is done.
+        #TODO. I must allow to use different Mycelium hosts. In order to do it, I have to lauch one in Russia, like in the Office on Pushkina 38 :)
         self.myceliumVersion = myceliumVersion
         self.input_chanel = input_chanel if ComradeAIToken is None else ComradeAIToken
         self.output_chanel = output_chanel if output_chanel is not None else "myceliumRouter" + self.myceliumVersion
@@ -336,13 +502,31 @@ class Mycelium:
         self.connection = None
         self.chanel = None
         self.lastReceivedMessageBillingData = lastReceivedMessageBillingData
-        self.message_received_callback = message_received_callback
+        self.message_received_callback = message_received_callback #Only used in a server mode when start_server is awaited.
         self.serverAsyncModeThreads = serverAsyncModeThreads
 
     def dialog_count(self):
         return len(self.dialogs)
-
-    async def connect_to_mycelium(self):      
+    
+    def Dialog(self, textPrompt = None, imagePrompt = None, audioPrompt = None, audioMimeType = None, documentPrompt = None, documentMimeType = None, url = None, urlMimeType = None, agent = None):
+        newDialog = Dialog.create(mycelium = self, textPrompt = textPrompt, imagePrompt = imagePrompt, audioPrompt = audioPrompt, audioMimeType = audioMimeType, documentPrompt = documentPrompt, documentMimeType = documentMimeType, url = url, urlMimeType = urlMimeType)
+        newDialog._update_totals()
+        self.dialogs[newDialog.dialog_id] = newDialog
+        if agent is not None:
+            newDialog = agent.Invoke(newDialog)
+            newDialog._update_totals()
+        return newDialog
+    
+    async def DialogAsync(self, textPrompt = None, imagePrompt = None, audioPrompt = None, audioMimeType = None, documentPrompt = None, documentMimeType = None, url = None, urlMimeType = None, agent = None):
+        newDialog = Dialog.create(mycelium = self, textPrompt = textPrompt, imagePrompt = imagePrompt, audioPrompt = audioPrompt, audioMimeType = audioMimeType, documentPrompt = documentPrompt, documentMimeType = documentMimeType, url = url, urlMimeType = urlMimeType)
+        newDialog._update_totals()
+        self.dialogs[newDialog.dialog_id] = newDialog
+        if agent is not None:
+            newDialog = await agent.InvokeAsync(newDialog)
+            newDialog._update_totals()
+        return newDialog
+    
+    async def connectAsync(self):
         self.connection = await aio_pika.connect_robust(
             host=self.rabbitmq_host,
             login=self.rabbitmq_username,
@@ -351,6 +535,30 @@ class Mycelium:
         )
         self.chanel = await self.connection.channel()
         await self.chanel.set_qos(prefetch_count=self.serverAsyncModeThreads)
+
+    async def connect_to_mycelium(self): 
+        #Will be deprecated in further releases. 
+        warnings.warn("connect_to_mycelium() is deprecated and will be removed in a future versions. Use connect() or await connectAsync() instead.", DeprecationWarning, stacklevel=2)
+        self.connection = await aio_pika.connect_robust(
+            host=self.rabbitmq_host,
+            login=self.rabbitmq_username,
+            password=self.rabbitmq_password,
+            virtualhost=self.rabbitmq_vhost
+        )
+        self.chanel = await self.connection.channel()
+        await self.chanel.set_qos(prefetch_count=self.serverAsyncModeThreads)
+
+    def connect(self):      
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(
+                host=self.rabbitmq_host,
+                virtual_host=self.rabbitmq_vhost,  # Include the virtual host here
+                credentials=pika.PlainCredentials(
+                    self.rabbitmq_username, self.rabbitmq_password
+                )
+            )
+        )
+        self.chanel = self.connection.channel()
             
     async def start_server(self, allowNewDialogs = False):
         try:
@@ -440,3 +648,97 @@ class Mycelium:
     
     async def close(self):
         await self.connection.close()
+        
+class Agent:
+    def __init__(self, mycelium, service, serviceParams = ""):
+        self.mycelium = mycelium
+        self.service = service
+        self.serviceParams = serviceParams
+
+    async def InvokeAsync(self, dialogs) -> Dialog:
+        if isinstance(dialogs, Dialog):
+            if not self.mycelium.connection:
+                await self.mycelium.connectAsync()
+            headers = {
+                'billingData' : json.dumps([]),
+                'routingStrategy' : RoutingStrategy(strategy="direct", params=self.service).to_json(),
+            }
+            if self.serviceParams != "" and self.serviceParams is not None:
+                headers['requestAgentConfig'] = json.dumps(self.serviceParams)
+            
+            message = aio_pika.Message(body=dialogs.serialize_and_compress(), correlation_id=str(dialogs.dialog_id), headers=headers, reply_to=self.mycelium.input_chanel)
+            routing_key = self.mycelium.output_chanel
+            await self.mycelium.chanel.default_exchange.publish(message, routing_key=routing_key)
+            queue = await self.mycelium.chanel.declare_queue(self.mycelium.input_chanel)
+
+            async with queue.iterator() as queue_iter:
+                async for message in queue_iter:
+                    async with message.process():
+                        headers = message.headers
+                        dialog = Dialog(reply_to=message.reply_to, dialog_id=message.correlation_id)
+                        dialog_id = dialog.dialog_id #We use it further to find the dialog after adding to mycelium.dialogs.
+                        if dialog_id in self.mycelium.dialogs:
+                            dialog.decompress_and_deserialize(message.body)
+                            self.mycelium.dialogs[dialog_id].messages += dialog.messages
+                            self.mycelium.dialogs[dialog_id].requestAgentConfig = dialog.requestAgentConfig
+                        break
+            await self.mycelium.connection.close()
+            return self.mycelium.dialogs[dialog_id]    
+        elif isinstance(dialogs, list):
+            for dlg in dialogs:
+                if not isinstance(dlg, Dialog):
+                    raise TypeError("Invoke takes only a Dialog object or a list of Dialog objects")
+            return True
+        
+    def Invoke(self, dialogs) -> Dialog:
+        if isinstance(dialogs, Dialog):
+            if not self.mycelium.connection:
+                self.mycelium.connect()
+
+            # Define headers
+            headers = {
+                'billingData': json.dumps([]),
+                'routingStrategy': RoutingStrategy(strategy="direct", params=self.service).to_json(),
+            }
+            if self.serviceParams != "" and self.serviceParams is not None:
+                headers['requestAgentConfig'] = json.dumps(self.serviceParams)
+
+            # Publish message
+            properties = pika.BasicProperties(
+                reply_to=self.mycelium.input_chanel,
+                correlation_id=str(dialogs.dialog_id),
+                headers=headers
+            )
+            self.mycelium.chanel.basic_publish(
+                exchange='',
+                routing_key=self.mycelium.output_chanel,
+                body=dialogs.serialize_and_compress(),
+                properties=properties
+            )
+
+            def callback(ch, method, properties, body):
+                dialog = Dialog(reply_to=properties.reply_to, dialog_id=properties.correlation_id)
+                dialog_id = dialog.dialog_id
+                if dialog_id in self.mycelium.dialogs:
+                    dialog.decompress_and_deserialize(body)
+                    self.mycelium.dialogs[dialog_id].messages += dialog.messages
+                    self.mycelium.dialogs[dialog_id].requestAgentConfig = dialog.requestAgentConfig
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                self.mycelium.chanel.stop_consuming()
+
+            self.mycelium.chanel.basic_consume(queue=self.mycelium.input_chanel, on_message_callback=callback, auto_ack=False)
+
+            self.mycelium.chanel.start_consuming()
+
+            #self.mycelium.connection.close()
+
+            return self.mycelium.dialogs.get(dialogs.dialog_id)
+
+        elif isinstance(dialogs, list):
+            for dlg in dialogs:
+                if not isinstance(dlg, Dialog):
+                    raise TypeError("InvokeSync takes only a Dialog object or a list of Dialog objects")
+            return True
+    
+    async def StreamAsync(self, dialogs):
+        return False
