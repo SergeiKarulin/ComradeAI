@@ -2,6 +2,8 @@
 
 This document details the AI agents available in the ComradeAI Discord interface, emphasizing their functionalities, strengths, and specific parameters.
 
+Since version 0.20 a simplified usage of Agents can by used. Take a look at AvailableServices.md.
+
 ## Configuring and Using Agents in ComradeAI
 
 In ComradeAI, the choice and configuration of an AI agent are crucial. This is managed through the `agent` variable, which are then used as part of the `routingStrategy`, and `requestAgentConfig` dictionary.
