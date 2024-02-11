@@ -1,4 +1,4 @@
-############## Mycelium Version 0.18 of 2024.01.18 ##############
+############## Mycelium Version 0.20 of 2024.02.10 ##############
 
 from ComradeAI.Mycelium import UnifiedPrompt
 
