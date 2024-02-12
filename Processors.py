@@ -1,16 +1,17 @@
 from Mycelium import Dialog, Message, UnifiedPrompt
-import re
+import aiohttp
+from bs4 import BeautifulSoup
 from datetime import datetime
 from docx import Document
 from docx.oxml.text.paragraph import CT_P
 from docx.oxml.table import CT_Tbl
 from docx.table import Table
 from docx.text.paragraph import Paragraph
-
 import io
-from PIL import Image
-
 import openpyxl
+from PIL import Image
+import re
+import requests
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
@@ -98,7 +99,7 @@ class DocxLoader:
     def __rshift__(self, other):
         if isinstance(other, Dialog):
             prompts = self.convert(self.docxFile)
-            message = Message(unified_prompts=prompts, role = "user", sender_info="ComradeAI user", send_datetime=str(datetime.now()))
+            message = Message(unified_prompts=prompts, role = "user", sender_info="ComradeAI user", send_datetime=datetime.now())
             other.messages.append(message)
             return other
         else:
@@ -190,7 +191,7 @@ class XlsxLoader:
             elif self.xlsxFile is not None:
                 xlsx = self.xlsxFile
             prompts = self.convert(xlsx)
-            message = Message(unified_prompts=prompts, role ="user", sender_info="ComradeAI user", send_datetime=str(datetime.now()))
+            message = Message(unified_prompts=prompts, role ="user", sender_info="ComradeAI user", send_datetime=datetime.now())
             other.messages.append(message)
             return other
         else:
@@ -248,6 +249,72 @@ class XlsxLoader:
                 print("image")
             else:
                 print(f"{prompt.content_type}: {prompt.content}")
+                
+class UrlLoader:
+    def __init__(self, urlContainingContent) -> None:
+        self.urlContainingContent = urlContainingContent
+        
+    def __rshift__(self, other):
+        if isinstance(other, Dialog):
+            links = self.extract_and_clean_links(self.urlContainingContent)
+            prompts = []
+            for link in links:
+                pageContent = self.url_text(link)
+                prompts.append(UnifiedPrompt(content_type="text", content=pageContent, mime_type="text/plain"))
+            if len(prompts) > 0:
+                message = Message(unified_prompts=prompts, role ="user", sender_info="ComradeAI user", send_datetime=datetime.now())
+                other.messages.append(message)
+            return other
+        else:
+            raise TypeError("Url loader can be only applied to a Dialog object")
+        
+    def extract_and_clean_links(self, text):
+        pattern = r'\b(?:https?://)?(?:www\.)?(\S+\.\S+)'
+        raw_links = re.findall(pattern, text)
+
+        cleaned_links = []
+        for link in raw_links:
+            cleaned_link = re.sub(r'[.,/]+$', '', link)
+            if not cleaned_link.startswith(('http://', 'https://')):
+                cleaned_link = 'https://' + cleaned_link
+            print(cleaned_link)
+            if self.is_webpage(cleaned_link):
+                cleaned_links.append(cleaned_link)
+        return cleaned_links
+          
+    def is_webpage(self, url):
+        try:
+            response = requests.get(url)
+            content_type = response.headers.get('Content-Type', '').lower()
+            return content_type.startswith('text/html')
+        except Exception as e:
+            print(f"Error while checking the URL: {str(e)}")
+            return False
+        
+    def url_text(self, msg):
+        try:
+            if msg[0] != "h":
+                msg = msg[1:-1]
+
+            headers = {
+                'X-Requested-With': 'XMLHttpRequest',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0'
+            }
+
+            response = requests.get(msg, headers=headers)
+            html = response.content
+            soup = BeautifulSoup(html, features="html.parser")
+            for script in soup(["script", "style"]):
+                script.extract()  # Remove these two elements from the soup.
+            text = soup.get_text()
+            lines = (line.strip() for line in text.splitlines())
+            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+            text = '\n'.join(chunk for chunk in chunks if chunk)
+            return text
+
+        except Exception as e:
+            print(f"Failed to open link: {str(e)}")
+            return None
 
 class XlsxSplitter:
     def __init__ (self, splitMethod='row', lastMessageCount = 1, acceptedRoles=[]):
@@ -289,3 +356,7 @@ class XlsxSplitter:
             return result
         else:
             raise TypeError("XML splitter is only aplicable to Dialog objects")
+        
+        
+#URLLoader, SMARTURLLoaer, and/or URLIterative Loader...
+#Ideas for result showing: MultipleDialogsParser, ReportBuilder?
