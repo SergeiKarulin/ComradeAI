@@ -1,5 +1,7 @@
 # Document Routines in ComradeAI
 
+Important! Sinse version 0.18.7 all the DocumentRoutines classes were merged into Processors Module, which is described in [Processors Module](docs/Processors.md).
+
 This guide demonstrates how to use DocxToPromptsConverter and XlsxToPromptsConverter in ComradeAI to process .docx and .xlsx files, respectively, and interact with AI agents. We will use two examples: a software development contract (DOCX) and WHO statistics (XLSX).
 
 ## Processing a DOCX File with LLaMa v2

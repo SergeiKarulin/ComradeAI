@@ -1,4 +1,4 @@
-ComradeAI
+ComradeAI==0.18.5
 cryptography
 debugpy
 nextcord

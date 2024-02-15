@@ -1,4 +1,4 @@
-############## Mycelium Version 0.20 of 2024.02.11 ##############
+############## Mycelium Version 0.18.10 of 2024.02.16 ##############
 
 import aio_pika
 import base64
@@ -8,6 +8,7 @@ import io
 import json
 import pika
 from PIL import Image
+import re
 import threading
 import uuid
 import warnings
@@ -195,7 +196,8 @@ class Dialog:
         self.myceliumVersion = myceliumVersion
         
     @classmethod
-    def create(self, mycelium, textPrompt = None, imagePrompt = None, audioPrompt = None, audioMimeType = None, documentPrompt = None, documentMimeType = None, url = None, urlMimeType = None):
+    def Create(self, textPrompt = None, imagePrompt = None, audioPrompt = None, audioMimeType = None, 
+               documentPrompt = None, documentMimeType = None, url = None, urlMimeType = None, agent=None):
         unifiedPrompts = []
         if textPrompt:
             if not isinstance(textPrompt, str) and not isinstance(textPrompt, list):
@@ -240,10 +242,14 @@ class Dialog:
                     raise TypeError("audioMimeType must be either a string starting with audio/ or a list of strings where each starts with audio/")
                 i += 1
         if documentPrompt and documentMimeType:
-            a = 1
+            print("Not implemented...")
             #TODO. Finish for 3 document types (XLSXm DOCX, XML???)
         message = Message(role="user", unified_prompts=unifiedPrompts, sender_info="ComradeAI Client", send_datetime=datetime.datetime.now())
-        resultDialog = Dialog(messages=[message], reply_to=mycelium.input_chanel)
+        resultDialog = Dialog(messages=[message])
+        resultDialog._update_totals()
+        if agent != None:
+            resultDialog = agent.Invoke(resultDialog)
+            resultDialog._update_totals()
         return (resultDialog)
 
     def __add__(self, other):
@@ -344,6 +350,47 @@ class Dialog:
                 else:
                     messages_str_list.append(f"Prompt {k}: content type: {prompt.content_type}, mime-type: {prompt.mime_type}.")  
         return "\n".join(messages_str_list)
+
+    @classmethod
+    def FromTemplate(self, template, valueDictionary):
+        # Осталось сделать перемножение... но, [Dialog] * [DialogTemplate], по ходу, не сделаю. 
+        # Такое перемножение зарулим примером, где диалоги перебираются и множатся на массивы словарей с сохарнением в общий лист.
+
+        def find_unique_placeholders(dialogTemplate):
+            if not isinstance(dialogTemplate, DialogTemplate):
+                raise TypeError ("dialogTemplate must be of type DialogTemplate")
+            pattern = r"\{(\w+)\}"  # Matches placeholders in the format {placeholder}
+            placeholders = set()
+            for message in dialogTemplate.messages:
+                for prompt in message.unified_prompts:
+                    if prompt.content_type == "text":
+                            matches = re.findall(pattern, prompt.content)
+                            placeholders.update(matches)
+            if len(placeholders) == 0:
+                raise TypeError ("dialogTemplate is not a proper DialogTemplate as there is no prompt with content_type text containing any placeholders like {placeholder_name}")
+            return placeholders
+
+        if not isinstance(template, DialogTemplate) and not isinstance(valueDictionary, dict):
+            raise TypeError ("template must be a DialogTemplate object and valueDictionary must be a dictionary of {placeholderName : value}")
+        
+        placeholders = find_unique_placeholders(template)
+        missing_placeholders = placeholders - valueDictionary.keys()
+        if missing_placeholders:
+            raise ValueError(f"Missing replacement for placeholders: {', '.join(missing_placeholders)}")
+        
+        result = Dialog(dialog_id = template.dialog_id, messages = copy.deepcopy(template.messages), reply_to = template.reply_to,
+                        lastMessageDiagnosticData = template.lastMessageDiagnosticData, requestAgentConfig = template.requestAgentConfig,
+                        lastMessageBillingData = template.lastMessageBillingData, endUserCommunicationID = template.endUserCommunicationID,
+                        lastMessageRoutingStrategy= template.lastMessageRoutingStrategy)        
+        
+        for msg in result.messages:
+            for prmpt in msg.unified_prompts:
+                if prmpt.content_type == "text":
+                    try:
+                        prmpt.content = prmpt.content.format(**valueDictionary)
+                    except KeyError as e:
+                        raise ValueError(f"Missing replacement for placeholder: {e}")
+        return result
 
     def _update_totals(self):
         self.message_count = len(self.messages)
@@ -460,7 +507,8 @@ class Dialog:
         decompressed_data = zlib.decompress(compressed_data)
         self.deserialize(decompressed_data.decode())
         
-    async def generate_error_message(self, errorMessage, billingData=None, sender_info=None, diagnosticData=None, subAccount = None):
+    async def generate_error_message(self, errorMessage, billingData=None, sender_info=None, diagnosticData=None, 
+                                     subAccount = None):
         if not isinstance(errorMessage, str):
             errorMessage = str(errorMessage)
         if billingData is None:
@@ -485,6 +533,42 @@ class Dialog:
         )
         self.messages.append(error_message)
         self._update_totals()
+        
+    def SaveToFile(self, filename, use_zip=False):
+        """
+        Serialize the dialog, optionally compress it, and save it to a specified file.
+        :param filename: The name of the file where the dialog should be saved.
+        :param use_zip: Boolean flag indicating whether to compress the data before saving.
+        """
+        with open(filename, 'wb' if use_zip else 'w') as file:
+            data_to_save = self.serialize_and_compress() if use_zip else self.serialize()
+            if use_zip:
+                # When using binary mode ('wb'), ensure data is in bytes
+                file.write(data_to_save)
+            else:
+                # When not using zip, data is saved as a string
+                file.write(data_to_save)
+                
+    @classmethod
+    def CreateFromFile(cls, filename):
+        """
+        Create a Dialog instance from a file, automatically detecting if the data is compressed.
+        :param filename: The name of the file to load the dialog from.
+        :return: A Dialog instance.
+        """
+        with open(filename, 'rb') as file:  # Always read in binary mode
+            data_to_load = file.read()
+            try:
+                # Try decompressing, assuming the data might be compressed
+                decompressed_data = zlib.decompress(data_to_load)
+                dialog_instance = cls()
+                # If decompression was successful, deserialize the decompressed data
+                dialog_instance.deserialize(decompressed_data.decode())
+            except zlib.error:
+                # If decompression fails, assume the data was not compressed and is in plain text format
+                dialog_instance = cls()
+                dialog_instance.deserialize(data_to_load.decode())  # Decode since we read in binary mode
+            return dialog_instance
 
 # Mycelium class
 class Mycelium:
@@ -518,8 +602,9 @@ class Mycelium:
             else:
                 raise TypeError("You can only merge a Dialog object or a list of Dialog objects")
     
+    #Must never be used from here
     def Dialog(self, textPrompt = None, imagePrompt = None, audioPrompt = None, audioMimeType = None, documentPrompt = None, documentMimeType = None, url = None, urlMimeType = None, agent = None):
-        newDialog = Dialog.create(mycelium = self, textPrompt = textPrompt, imagePrompt = imagePrompt, audioPrompt = audioPrompt, audioMimeType = audioMimeType, documentPrompt = documentPrompt, documentMimeType = documentMimeType, url = url, urlMimeType = urlMimeType)
+        newDialog = Dialog.Create(mycelium = self, textPrompt = textPrompt, imagePrompt = imagePrompt, audioPrompt = audioPrompt, audioMimeType = audioMimeType, documentPrompt = documentPrompt, documentMimeType = documentMimeType, url = url, urlMimeType = urlMimeType)
         newDialog._update_totals()
         self.dialogs[newDialog.dialog_id] = newDialog
         if agent is not None:
@@ -527,8 +612,9 @@ class Mycelium:
             newDialog._update_totals()
         return newDialog
     
+    #Must never be used from here
     async def DialogAsync(self, textPrompt = None, imagePrompt = None, audioPrompt = None, audioMimeType = None, documentPrompt = None, documentMimeType = None, url = None, urlMimeType = None, agent = None):
-        newDialog = Dialog.create(mycelium = self, textPrompt = textPrompt, imagePrompt = imagePrompt, audioPrompt = audioPrompt, audioMimeType = audioMimeType, documentPrompt = documentPrompt, documentMimeType = documentMimeType, url = url, urlMimeType = urlMimeType)
+        newDialog = Dialog.Create(mycelium = self, textPrompt = textPrompt, imagePrompt = imagePrompt, audioPrompt = audioPrompt, audioMimeType = audioMimeType, documentPrompt = documentPrompt, documentMimeType = documentMimeType, url = url, urlMimeType = urlMimeType)
         newDialog._update_totals()
         self.dialogs[newDialog.dialog_id] = newDialog
         if agent is not None:
@@ -664,89 +750,227 @@ class Agent:
         self.mycelium = mycelium
         self.service = service
         self.serviceParams = serviceParams
-
-    async def InvokeAsync(self, dialogs) -> Dialog:
-        if isinstance(dialogs, Dialog):
-            if not self.mycelium.connection:
-                await self.mycelium.connectAsync()
-            headers = {
-                'billingData' : json.dumps([]),
-                'routingStrategy' : RoutingStrategy(strategy="direct", params=self.service).to_json(),
-            }
-            if self.serviceParams != "" and self.serviceParams is not None:
-                headers['requestAgentConfig'] = json.dumps(self.serviceParams)
-            
-            message = aio_pika.Message(body=dialogs.serialize_and_compress(), correlation_id=str(dialogs.dialog_id), headers=headers, reply_to=self.mycelium.input_chanel)
-            routing_key = self.mycelium.output_chanel
-            await self.mycelium.chanel.default_exchange.publish(message, routing_key=routing_key)
-            queue = await self.mycelium.chanel.declare_queue(self.mycelium.input_chanel)
-
-            async with queue.iterator() as queue_iter:
-                async for message in queue_iter:
-                    async with message.process():
-                        headers = message.headers
-                        new_dialog = Dialog(reply_to=message.reply_to, dialog_id=message.correlation_id)
-                        dialog_id = new_dialog.dialog_id #We use it further to find the dialog after adding to mycelium.dialogs.
-                        if dialog_id in self.mycelium.dialogs:
-                            new_dialog.decompress_and_deserialize(message.body)
-                            self.mycelium.dialogs[dialog_id].messages += new_dialog.messages
-                            self.mycelium.dialogs[dialog_id].requestAgentConfig = new_dialog.requestAgentConfig
-                        break
-            await self.mycelium.connection.close()
-            return self.mycelium.dialogs[dialog_id]
-        elif isinstance(dialogs, list):
-        #TODO. Implement logic for a lsit of Dialogs
-            for dlg in dialogs:
-                if not isinstance(dlg, Dialog):
-                    raise TypeError("InvokeSync takes only a Dialog object or a list of Dialog objects")
-            return True
         
-    def Invoke(self, dialogs) -> Dialog:
+    def __rrshift__(self, other):
+        return self.Invoke(other)
+
+    # async def InvokeAsync(self, dialogs) -> Dialog:
+    #     #ATTENTION! OUTDATED.
+    #     if isinstance(dialogs, Dialog):
+    #         if not self.mycelium.connection:
+    #             await self.mycelium.connectAsync()
+    #         headers = {
+    #             'billingData' : json.dumps([]),
+    #             'routingStrategy' : RoutingStrategy(strategy="direct", params=self.service).to_json(),
+    #         }
+    #         if self.serviceParams != "" and self.serviceParams is not None:
+    #             headers['requestAgentConfig'] = json.dumps(self.serviceParams)
+            
+    #         message = aio_pika.Message(body=dialogs.serialize_and_compress(), correlation_id=str(dialogs.dialog_id), headers=headers, reply_to=self.mycelium.input_chanel)
+    #         routing_key = self.mycelium.output_chanel
+    #         await self.mycelium.chanel.default_exchange.publish(message, routing_key=routing_key)
+    #         queue = await self.mycelium.chanel.declare_queue(self.mycelium.input_chanel)
+
+    #         async with queue.iterator() as queue_iter:
+    #             async for message in queue_iter:
+    #                 async with message.process():
+    #                     headers = message.headers
+    #                     new_dialog = Dialog(reply_to=message.reply_to, dialog_id=message.correlation_id)
+    #                     dialog_id = new_dialog.dialog_id #We use it further to find the dialog after adding to mycelium.dialogs.
+    #                     if dialog_id in self.mycelium.dialogs:
+    #                         new_dialog.decompress_and_deserialize(message.body)
+    #                         self.mycelium.dialogs[dialog_id].messages += new_dialog.messages
+    #                         self.mycelium.dialogs[dialog_id].requestAgentConfig = new_dialog.requestAgentConfig
+    #                     break
+    #         await self.mycelium.connection.close()
+    #         return self.mycelium.dialogs[dialog_id]
+    #     elif isinstance(dialogs, list):
+    #     #TODO. Implement logic for a lsit of Dialogs
+    #         for dlg in dialogs:
+    #             if not isinstance(dlg, Dialog):
+    #                 raise TypeError("InvokeSync takes only a Dialog object or a list of Dialog objects")
+    #         return True
+        
+    def PurgeAwaitingIncomeMessages(self):
+        if not self.mycelium.connection:
+            self.mycelium.connect()
+        try:
+            self.mycelium.chanel.queue_purge(queue=self.mycelium.input_chanel)
+        except Exception as ex:
+            print("Error purging awaiting messages: " + str(ex))
+        
+    def Invoke(self, dialogs):
+        # Conceptual point. If the imput type is Dialog, we return a Dialog
+        # But if it's a list of dialogs, we retrun a list of Dialog
+        errorMessage = "Only a Dialog object, a string or a list of dialog objects/strings can be processed"
+        result = None
+        if not isinstance(dialogs, Dialog) and not isinstance(dialogs, str) and not isinstance(dialogs, list):
+            raise TypeError (errorMessage)
         if isinstance(dialogs, Dialog):
-            if not self.mycelium.connection:
-                self.mycelium.connect()
+            result = self.__Process(dialogs)
+        if isinstance(dialogs, str):
+            result = self.__Process(Dialog.Create(dialogs))
+        if isinstance (dialogs, list):
+            resultDialogs = []
+            for dialog in dialogs:
+                if isinstance(dialog, Dialog):
+                    resultDialogs.append(self.__Process(dialog))
+                elif isinstance(dialog, str):
+                    resultDialogs.append(self.__Process(Dialog.Create(dialog)))
+                else:
+                    raise TypeError(errorMessage)
+            result = resultDialogs
+        return result
+    
+    def __Process(self, dialog) -> Dialog:
+        errorMessage = "Only a Dialog object or a list of dialog class objects can be processed"
+        if not isinstance(dialog, Dialog):
+            raise TypeError (errorMessage)
 
-            # Define headers
-            headers = {
-                'billingData': json.dumps([]),
-                'routingStrategy': RoutingStrategy(strategy="direct", params=self.service).to_json(),
-            }
-            if self.serviceParams != "" and self.serviceParams is not None:
-                headers['requestAgentConfig'] = json.dumps(self.serviceParams)
+        if not self.mycelium.connection:
+            self.mycelium.connect()
 
-            # Publish message
-            properties = pika.BasicProperties(
-                reply_to=self.mycelium.input_chanel,
-                correlation_id=str(dialogs.dialog_id),
-                headers=headers
-            )
-            self.mycelium.chanel.basic_publish(
-                exchange='',
-                routing_key=self.mycelium.output_chanel,
-                body=dialogs.serialize_and_compress(),
-                properties=properties
-            )
+        # Define headers
+        headers = {
+            'billingData': json.dumps([]),
+            'routingStrategy': RoutingStrategy(strategy="direct", params=self.service).to_json(),
+        }
+        if self.serviceParams != "" and self.serviceParams is not None:
+            headers['requestAgentConfig'] = json.dumps(self.serviceParams)
 
-            def callback(ch, method, properties, body):
-                new_dialog = Dialog(reply_to=properties.reply_to, dialog_id=properties.correlation_id)
-                dialog_id = new_dialog.dialog_id
-                if dialog_id in self.mycelium.dialogs:
-                    new_dialog.decompress_and_deserialize(body)
-                    self.mycelium.dialogs[dialog_id].messages += new_dialog.messages
-                    self.mycelium.dialogs[dialog_id].requestAgentConfig = new_dialog.requestAgentConfig
-                ch.basic_ack(delivery_tag=method.delivery_tag)
-                self.mycelium.chanel.stop_consuming()
+        # Put the dialog into Mycelium and add relevant reply_to
+        dialog.reply_to = self.mycelium.input_chanel
+        self.mycelium.dialogs[dialog.dialog_id] = dialog
+        
+        # Place message
+        properties = pika.BasicProperties(
+            reply_to=self.mycelium.input_chanel,
+            correlation_id=str(dialog.dialog_id),
+            headers=headers
+        )
+        self.mycelium.chanel.basic_publish(
+            exchange='',
+            routing_key=self.mycelium.output_chanel,
+            body=dialog.serialize_and_compress(),
+            properties=properties
+        )
 
-            self.mycelium.chanel.basic_consume(queue=self.mycelium.input_chanel, on_message_callback=callback, auto_ack=False)
+        def callback(ch, method, properties, body):
+            new_dialog = Dialog(reply_to=properties.reply_to, dialog_id=properties.correlation_id)
+            dialog_id = new_dialog.dialog_id
+            if dialog_id in self.mycelium.dialogs:
+                new_dialog.decompress_and_deserialize(body)
+                self.mycelium.dialogs[dialog_id].messages += new_dialog.messages
+                self.mycelium.dialogs[dialog_id].requestAgentConfig = new_dialog.requestAgentConfig
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            self.mycelium.chanel.stop_consuming()
 
-            self.mycelium.chanel.start_consuming()
-            return self.mycelium.dialogs.get(dialogs.dialog_id)
-        elif isinstance(dialogs, list):
-        #TODO. Implement logic for a lsit of Dialogs
-            for dlg in dialogs:
-                if not isinstance(dlg, Dialog):
-                    raise TypeError("InvokeSync takes only a Dialog object or a list of Dialog objects")
-            return True
+        self.mycelium.chanel.basic_consume(queue=self.mycelium.input_chanel, on_message_callback=callback, auto_ack=False)
+
+        self.mycelium.chanel.start_consuming()
+        return self.mycelium.dialogs.get(dialog.dialog_id)
     
     async def StreamAsync(self, dialogs):
         return False
+
+class DialogTemplate():
+    def __init__(self, messages=None, context=None, reply_to = None, lastMessageDiagnosticData = None, requestAgentConfig = None,
+                 lastMessageBillingData = None, endUserCommunicationID = None, lastMessageRoutingStrategy = RoutingStrategy()):
+        self.dialog_id = None
+        self.reply_to = reply_to
+        self.messages = context if context else []
+        if lastMessageBillingData is None:
+            lastMessageBillingData = []
+        self.lastMessageBillingData = lastMessageBillingData
+        if messages:
+            self.messages.extend(messages)
+        self._update_totals()
+        self.lastMessageDiagnosticData = lastMessageDiagnosticData
+        self.requestAgentConfig = requestAgentConfig
+        self.endUserCommunicationID = endUserCommunicationID
+        self.lastMessageRoutingStrategy = lastMessageRoutingStrategy
+    
+    def _update_totals(self):
+        self.message_count = len(self.messages)
+        if self.message_count > 0:
+            self.lastMessageBillingData = self.messages[-1].billingData
+            self.lastMessageDiagnosticData = self.messages[-1].diagnosticData
+            self.lastMessageRoutingStrategy = self.messages[-1].routingStrategy
+    
+    def __mul__(self, other):
+        return self.__Process(other)
+    
+    def __rmul__(self, other):
+        return self.__Process(other)
+    
+    def __Process(self, other):
+        if not isinstance(other, dict) and not isinstance(other, list):
+            raise ValueError("Can only create Dialog(s) from DialogTemplate and dict or [dict]")
+        if len(self.messages)<1:
+            raise IndexError("DialogTemplate must have at least one message.")
+        if isinstance(other, dict):
+            result = Dialog.FromTemplate(self, other)
+        elif isinstance(other, list):
+            resultDialogs = []
+            for item in other:
+                if not isinstance(item, dict):
+                    raise ValueError("Can only create Dialog(s) from DialogTemplate and dict or [dict]")
+                newDialog = Dialog.FromTemplate(self, item)
+                resultDialogs.append(newDialog)
+            result = resultDialogs
+        return result
+
+    @classmethod
+    def Create(self, textPrompt = None, imagePrompt = None, audioPrompt = None, audioMimeType = None, 
+               documentPrompt = None, documentMimeType = None, url = None, urlMimeType = None):
+        unifiedPrompts = []
+        if textPrompt:
+            if not isinstance(textPrompt, str) and not isinstance(textPrompt, list):
+                raise TypeError ("textPrompt must be either a string or a list of strings")
+            if isinstance(textPrompt, str):
+                textPrompt = [textPrompt]
+            if isinstance(textPrompt, list):
+                for text in textPrompt:
+                    if isinstance(text, str):
+                        unifiedPrompts.append(UnifiedPrompt(content_type="text", content=text, mime_type="text/plain"))
+                    else:
+                        raise TypeError ("textPrompt must be either a string or a list of strings")
+        if imagePrompt:
+            if not isinstance(imagePrompt, Image.Image) and not isinstance(imagePrompt, list):
+                raise TypeError ("imagePrompt must be either a Pillow Image or a list of Pillow Images")
+            if isinstance(imagePrompt, Image.Image):
+                imagePrompt = [imagePrompt]
+            if isinstance(imagePrompt, list):
+                for img in imagePrompt:
+                    if isinstance(img, Image.Image):
+                        unifiedPrompts.append(UnifiedPrompt(content_type="image", content=img, mime_type=f"image/{imagePrompt.format.lower()}"))
+                    else:
+                        raise TypeError ("imagePrompt must be either a Pillow Image or a list of Pillow Images")
+        if audioPrompt and audioMimeType:
+            if not isinstance(audioPrompt, bytearray) and not isinstance(audioPrompt, list):
+                raise TypeError("audioPrompt must be either a Byte array or a list of byte arrays")
+            if not isinstance(audioMimeType, str) and not isinstance(audioMimeType, list):
+                raise TypeError("audioMimeType must be either a string starting with audio/ or a list of strings where each starts with audio/")
+            if isinstance(audioPrompt, bytearray):
+                audioPrompt = [audioPrompt]
+            if isinstance(audioMimeType, str):
+                audioMimeType = [audioMimeType]
+            i = 0
+            for audio in audioPrompt:
+                if i < len(audioMimeType):
+                    mimeType = audioMimeType[i]
+                else:
+                    mimeType = audioMimeType[0]
+                if isinstance(audio, bytearray) and mimeType.startswith("audio/"):
+                    unifiedPrompts.append(UnifiedPrompt(content_type="audio", content=audioPrompt, mime_type=mimeType))
+                else:
+                    raise TypeError("audioMimeType must be either a string starting with audio/ or a list of strings where each starts with audio/")
+                i += 1
+        if documentPrompt and documentMimeType:
+            print("Not implemented...")
+            #TODO. Finish for 3 document types (XLSXm DOCX, XML???)
+            #Missed in both Dialog and DialogTemplate. Pythom OOP sucks.
+        message = Message(role="user", unified_prompts=unifiedPrompts, sender_info="ComradeAI Client", send_datetime=datetime.datetime.now())
+        resultDialogTemplate = DialogTemplate(messages=[message])
+        resultDialogTemplate._update_totals()
+        return (resultDialogTemplate)

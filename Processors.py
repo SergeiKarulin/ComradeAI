@@ -1,4 +1,6 @@
-from Mycelium import Dialog, Message, UnifiedPrompt
+############## Mycelium Version 0.18.10 of 2024.02.16 ##############
+
+from ComradeAI.Mycelium import Dialog, Message, UnifiedPrompt
 import aiohttp
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -8,10 +10,13 @@ from docx.oxml.table import CT_Tbl
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 import io
+import json
 import openpyxl
+import os
 from PIL import Image
 import re
 import requests
+import uuid
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
@@ -20,14 +25,25 @@ class MessageSplitter:
         self.acceptedRoles = acceptedRoles
         
     def __rrshift__(self, other):
+        if not isinstance(other, Dialog) and not isinstance(other, Dialog):
+            raise TypeError("Message splitter is only aplicable to Dialog objects or lists of Dialog objects")
         if isinstance(other, Dialog):
+            return self.__Process(other)
+        if isinstance(other, list):
             result = []
-            for msg in other.messages:
+            for dialog in other:
+                result.append(self.__Process(dialog))
+            return result
+        
+    def __Process(self, dialog):
+        if isinstance(dialog, Dialog):
+            result = []
+            for msg in dialog.messages:
                 if self.acceptedRoles == [] or msg.role in self.acceptedRoles:
                     result.append(Dialog(messages=[msg]))
-            return result
+            return result if len(result) > 1 else result[0]
         else:
-            raise TypeError("Message splitter is only aplicable to Dialog objects")
+            raise TypeError("Message splitter is only aplicable to Dialog objects or lists of Dialog objects")
         
 class TextLineSplitter:
     def __init__ (self, lastMessageCount = 1, acceptedRoles=[]):
@@ -35,10 +51,21 @@ class TextLineSplitter:
         self.acceptedRoles = acceptedRoles
         
     def __rrshift__(self, other):
+        if not isinstance(other, Dialog) and not isinstance(other, Dialog):
+            raise TypeError("Message splitter is only aplicable to Dialog objects or lists of Dialog objects")
         if isinstance(other, Dialog):
+            return self.__Process(other)
+        if isinstance(other, list):
+            result = []
+            for dialog in other:
+                result.append(self.__Process(dialog))
+            return result
+        
+    def __Process(self, dialog):
+        if isinstance(dialog, Dialog):
             i = 0
             result = []
-            for msg in reversed(other.messages):
+            for msg in reversed(dialog.messages):
                 if i >= self.lastMessageCount:
                     break
                 if self.acceptedRoles == [] or msg.role in self.acceptedRoles:
@@ -64,10 +91,21 @@ class TextListSplitter:
         self.pattern = re.compile(r'^((\d+|[a-zA-Z])(\.\d+)*(\.[a-zA-Z])?[\.\)]\s|[-\*+]|--\s|–\s|—\s)')
 
     def __rrshift__(self, other):
+        if not isinstance(other, Dialog) and not isinstance(other, Dialog):
+            raise TypeError("Message splitter is only aplicable to Dialog objects or lists of Dialog objects")
         if isinstance(other, Dialog):
+            return self.__Process(other)
+        if isinstance(other, list):
+            result = []
+            for dialog in other:
+                result.append(self.__Process(dialog))
+            return result
+
+    def __Process(self, dialog):
+        if isinstance(dialog, Dialog):
             i = 0
             result = []
-            for msg in reversed(other.messages):
+            for msg in reversed(dialog.messages):
                 if i >= self.lastMessageCount:
                     break
                 if self.acceptedRoles == [] or msg.role in self.acceptedRoles:
@@ -91,6 +129,48 @@ class TextListSplitter:
         else:
             raise TypeError("Message splitter is only applicable to Dialog objects")
         
+class TextRegExpSplitter:
+    '''
+    Pattern Customization: The __init__ method now accepts a pattern parameter, allowing the user to specify any regular expression pattern for splitting the text.
+    Remove Pattern Option: The removePattern parameter determines whether to remove the matched pattern from the beginning of each line in the content.
+    Type Checks and Processing Logic: The processing logic remains largely the same, but it's now based on the custom regular expression pattern provided at initialization.
+    '''
+    def __init__(self, pattern, lastMessageCount=1, acceptedRoles=[], removePattern=True):
+        self.lastMessageCount = lastMessageCount
+        self.acceptedRoles = acceptedRoles
+        self.removePattern = removePattern
+        self.pattern = re.compile(pattern)
+
+    def __rrshift__(self, other):
+        if not isinstance(other, Dialog) and not isinstance(other, list):
+            raise TypeError("Message splitter is only applicable to Dialog objects or lists of Dialog objects")
+        if isinstance(other, Dialog):
+            return self.__Process(other)
+        elif isinstance(other, list):
+            return [self.__Process(dialog) for dialog in other]
+
+    def __Process(self, dialog):
+        if not isinstance(dialog, Dialog):
+            raise TypeError("Message splitter is only applicable to Dialog objects")
+        
+        result = []
+        for msg in reversed(dialog.messages[:self.lastMessageCount]):
+            if self.acceptedRoles == [] or msg.role in self.acceptedRoles:
+                for prompt in msg.unified_prompts:
+                    if prompt.content_type == "text":
+                        lines = prompt.content.splitlines()
+                        for line in lines:
+                            stripped_line = line.lstrip()
+                            match = self.pattern.match(stripped_line)
+                            if match:
+                                content_start_index = match.end() + (len(line) - len(stripped_line))
+                                line_content = line[content_start_index:] if self.removePattern else line
+                                if line_content.strip():  # Ensure the line has content besides whitespace
+                                    unified_prompt = UnifiedPrompt(content_type="text", content=line_content, mime_type="text/plain")
+                                    new_message = Message(unified_prompts=[unified_prompt], role=msg.role, sender_info=msg.sender_info, send_datetime=msg.send_datetime, diagnosticData=msg.diagnosticData, agentConfig=msg.agentConfig, billingData=msg.billingData, routingStrategy=msg.routingStrategy)
+                                    result.append(Dialog(messages=[new_message]))
+        return result
+
 class DocxLoader:
     def __init__(self, docxFile, convert_urls=False):
         self.convert_urls = convert_urls
@@ -335,12 +415,23 @@ class XlsxSplitter:
                 for cell in row.findall('.//Cell'):
                     result.append(cell.text or '')
         return result
-        
+    
     def __rrshift__(self, other):
+        if not isinstance(other, Dialog) and not isinstance(other, Dialog):
+            raise TypeError("Message splitter is only aplicable to Dialog objects or lists of Dialog objects")
         if isinstance(other, Dialog):
+            return self.__Process(other)
+        if isinstance(other, list):
+            result = []
+            for dialog in other:
+                result.append(self.__Process(dialog))
+            return result
+        
+    def __Process(self, dialog):
+        if isinstance(dialog, Dialog):
             i = 0
             result = []
-            for msg in reversed(other.messages):
+            for msg in reversed(dialog.messages):
                 if i >= self.lastMessageCount:
                     break
                 if self.acceptedRoles == [] or msg.role in self.acceptedRoles:
@@ -356,7 +447,97 @@ class XlsxSplitter:
             return result
         else:
             raise TypeError("XML splitter is only aplicable to Dialog objects")
+      
+class DialogToFileDownloader:
+    def __init__(self, dirPath = None):
+        self.dirPath = dirPath if dirPath else os.getcwd() + "/downloads/"
         
+    def __rrshift__(self, other):
+        return self.__Process(other)
+    
+    def __Process(self, other):
+        errorMessage = "Can only save content of Dialog object or [Dialog object]"
+        if not isinstance(other, Dialog) and not isinstance(other, list):
+            raise ValueError(errorMessage)
+        if isinstance(other, Dialog):
+            self.__Render(other)
+        elif isinstance(other, list):
+            for item in other:
+                if not isinstance(item, Dialog):
+                    raise ValueError(errorMessage)
+                self.__Render(item)
+        return other  
+    
+    def __Render(self, dialog):
+        target_dir = os.path.join(self.dirPath, dialog.dialog_id)
+        os.makedirs(target_dir, exist_ok=True)
         
-#URLLoader, SMARTURLLoaer, and/or URLIterative Loader...
-#Ideas for result showing: MultipleDialogsParser, ReportBuilder?
+        dialog_element = ET.Element("Dialog", id=dialog.dialog_id)
+        for i, msg in enumerate(dialog.messages):
+            msg_attr = {
+                "id": str(i),
+                "sender_info": msg.sender_info,
+                "send_datetime": msg.send_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+            }
+            message_element = ET.SubElement(dialog_element, "Message", msg_attr)
+            
+            billing_data_str = str(msg.billingData)  
+            ET.SubElement(message_element, "BillingData", data=billing_data_str)
+            
+            for prompt in msg.unified_prompts:
+                prompt_element = ET.SubElement(message_element, "Prompt", type=prompt.content_type)
+                if prompt.content_type == "text":
+                    prompt_element.text = prompt.content
+                elif prompt.content_type == "image":
+                    # Handle Pillow images
+                    img_filename = uuid.uuid4().hex + ".png"  # Assuming PNG format; adjust if necessary
+                    img_path = os.path.join(target_dir, img_filename)
+                    prompt.content.save(img_path)  # Save the Pillow image
+                    ET.SubElement(prompt_element, "Image", path=os.path.join(dialog.dialog_id, img_filename))
+                elif prompt.content_type in ["audio", "video"]:
+                    # Handle audio and video as bytes
+                    file_extension = "mp3" if prompt.content_type == "audio" else "mp4"  # Simplified assumption; adjust based on actual mime_type or needs
+                    filename = uuid.uuid4().hex + "." + file_extension
+                    file_path = os.path.join(target_dir, filename)
+                    with open(file_path, 'wb') as file:
+                        file.write(prompt.content)
+                    ET.SubElement(prompt_element, prompt.content_type.capitalize(), path=os.path.join(dialog.dialog_id, filename))
+                elif prompt.content_type == "url":
+                    # Handle URL
+                    ET.SubElement(prompt_element, "URL", href=prompt.content)
+                    
+        # Write the XML and HTML files as before
+        tree = ET.ElementTree(dialog_element)
+        xml_path = os.path.join(target_dir, "content_manifest.xml")
+        tree.write(xml_path, encoding='utf-8', xml_declaration=True)
+        self.__GenerateHtml(target_dir, dialog_element)
+
+    def __GenerateHtml(self, target_dir, dialog_element):
+        html_path = os.path.join(target_dir, "content_view.html")
+        with open(html_path, 'w', encoding='utf-8') as html_file:
+            html_file.write('<!DOCTYPE html>\n<html>\n<head>\n<title>Dialog Content</title>\n</head>\n<body>\n')
+            
+            for message in dialog_element.findall('.//Message'):
+                # Display message details
+                sender_info = message.get('sender_info')
+                send_datetime = message.get('send_datetime')
+                html_file.write(f'<div><strong>Sender:</strong> {sender_info}, <strong>Time:</strong> {send_datetime}</div>\n')
+
+                for prompt in message.findall('.//Prompt'):
+                    content_type = prompt.attrib['type']
+                    if content_type == "text":
+                        html_file.write(f'<div>{prompt.text}</div>\n')
+                    elif content_type == "image":
+                        img_src = os.path.join(self.dirPath, prompt.find('Image').attrib['path']).replace(os.sep, '/')
+                        html_file.write(f'<a href="{img_src}" target="_blank"><img src="{img_src}" alt="Image" style="width: 256px; height: 256px;"></a><br>\n')
+                    elif content_type == "audio":
+                        audio_src = os.path.join(self.dirPath, prompt.find('Audio').attrib['path']).replace(os.sep, '/')
+                        html_file.write(f'<audio controls><source src="{audio_src}" type="audio/mpeg">Your browser does not support the audio element.</audio><br>\n')
+                    elif content_type == "video":
+                        video_src = os.path.join(self.dirPath, prompt.find('Video').attrib['path']).replace(os.sep, '/')
+                        html_file.write(f'<video width="320" height="240" controls><source src="{video_src}" type="video/mp4">Your browser does not support the video tag.</video><br>\n')
+                    elif content_type == "url":
+                        url = prompt.find('URL').attrib['href']
+                        html_file.write(f'<a href="{url}" target="_blank">{url}</a><br>\n')
+            
+            html_file.write('</body>\n</html>')

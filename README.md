@@ -13,11 +13,11 @@ The upcoming agents are Sber model Zoo and WaveNet or Mozilla TTS.
 
 ## Table of Contents
 - [Introduction](README.md)
-- [Availabe AI Agents](docs/Agents.md)
-- [Agent Usage Examples](docs/AgentExamples.md)
-- [Document Routines](docs/DocumentRoutines.md)
 - [Agent-Agent Interaction Example](docs/AgentAgentInteractions.md)
-
+- [Processors to Load/Transform/Download data](docs/Processors.md)
+- [Agent Usage Examples](docs/ServiceExamples.md)
+- [Availabe AI Services Configurations](docs/ServiceConfigurations.md)
+- [Document Routines - deprecated](docs/DocumentRoutines.md)
 
 ## Getting Started with ComradeAI
 
@@ -27,14 +27,23 @@ The ComradeAI framework consists of the following components:
 #### Mycelium
 Acts as the central network, managing the flow of information and routing messages to appropriate AI agents.
 
-#### Dialog
-Represents a conversation thread between the user and AI agents, containing a series of Messages.
+#### Dialog and DialogTemplate
+Represents a conversation thread between the user and AI agents, containing a series of Messages. DialogTemplate allows to create multiple Dialogs of the same purpose but with variations to find the prompt delivering the best Agent output.
 
 #### Message
 Encapsulates the user's input or AI's response within a Dialog.
 
 #### Unified Prompts
 Elements within a Message that contain the actual content, specified by type, content, and MIME type.
+
+### AI Service
+A Mycelium server that processes requests using AI model(s) or third-party AI service API.
+
+### Agent
+Agent is an abstraction that incapsulates some AI Service plus its specific configuration. A list if available services and their configuration options available [here](docs/ServiceConfigurations.md)
+
+#### Processors
+Tools to load, transform and download data keeping it compatible with ComradeAI Agents. A list of processors is available (here)[docs/Processors.md].
 
 ### Handling Responses: `message_received_handler` Function
 This function is crucial for processing responses from AI agents. It is called every time Mycelium receives a response, adding it to the corresponding Dialog.
@@ -60,62 +69,42 @@ pip install ComradeAI
 
 #### Step 1: Importing Modules
 ```python
-from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
-import uuid
-import asyncio
+from ComradeAI.Mycelium import Mycelium, Agent
 ```
 
-#### Step 2: Defining the incoming message hadler
-This function processed the dialog that returns from the Mycelium as a responce to your request. Convetionally the dialog contains only one message that were aded by the agent to yuor dialog.
+#### Step 2: Connecting to Mycelium Network
+
 ```python
-async def message_received_handler(dialog):
-    for message in dialog.messages:
-        for prompt in message.unified_prompts:
-            print(f"Received message: {prompt.content}")
+AI = Mycelium(ComradeAIToken="YOUR_COMRADEAI_TOKEN")
+AI.connect()
 ```
 
-#### Step 3: Initializing Mycelium
+#### Step 3: Creating the AI agent
 The only thing you need is token. 
 ```python
-comradeai_token = 'your_comradeai_token'  # Replace with your actual token
-myceliumRouter = Mycelium(ComradeAIToken=comradeai_token, message_received_callback=message_received_handler, dialogs={})
+groot = Agent(AI, "groot")
 ```
 
 #### Step 4: Sending a Message
 ```python
-async def hello_world():
-    #MyceliumRounter can handle any amount of dialogs. It distinguish them by unique ids.
-    dialog_id = str(uuid.uuid4())
-    dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
-    myceliumRouter.dialogs[dialog_id]=dialog
-
-    #Routing strategy defines what network does with the message. The simples strategy is "direct" when you specify the agent you want to process your dialog.
-    #Agent groot is a service agent to check your access to the network.
-    routing_strategy = RoutingStrategy("direct", "groot")
-    #Each message can contain various parts called "Unified Prompts". Each part can be text, image, url, and others.
-    #When the agent process the message it filters unsupported Unified Prompts types.
-    hello_prompt = UnifiedPrompt(content_type="text", content="Hi there!", mime_type="text/plain")
-    hello_message = Message(role="user", unified_prompts=[hello_prompt], routingStrategy=routing_strategy)
-    
-    myceliumRouter.dialogs[dialog_id].messages.append(hello_message)
-
-    await myceliumRouter.send_to_mycelium(dialog_id, isReply=False)
+resultDialog = "Yo! Wussup?" >> groot
 ```
 
-#### Step 5: Running the Script
+#### Step 5: Printing the conversation
 ```python
-asyncio.run(hello_world())
-asyncio.run(myceliumRouter.start_server(allowNewDialogs=False))
-#If your app doesn't act as an Agent keep this allowNewDialogs False to avoid any possible SPAM from other network participants.
+print(resultDialog)
 ```
 
 ##### Expected Behavior
-Sending the "Hello" Message: When you run hello_world(), it sends a message to the Groot agent.
+You will the the follwoing in the console:
 
-Starting the Mycelium Server: By running myceliumRouter.start_server(allowNewDialogs=True), you start the Mycelium server with the capability to allow new dialogs.
+Message 1: user
+Prompt 1: content type: text, mime-type: text/plain, content: Yo! Wussup?
+Message 2: assistant
+Prompt 1: content type: text, mime-type: text/plain, content: I am Groot!
 
 ###### What to Look For
-Once the script is executed, you should see the response "I am Groot!" printed in your console. This confirms that the message has been successfully sent and received by the Groot agent.
+Once the script is executed, you should see the Dialog data ending with the Agent message "I am Groot!" printed in your console. This confirms that the message has been successfully sent and received by the Groot agent.
 The printed response indicates a successful connection to the Mycelium network and proper functioning of the message handling setup in your script.
 If you receive this response, you can be confident that your system is correctly set up and ready for more complex interactions with other AI agents.
 Remember, the Groot agent is always free of charge, making it an ideal choice for initial testing and connectivity verification.
