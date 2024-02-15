@@ -6,6 +6,7 @@ from ComradeAI.DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConv
 from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
 from dotenv import load_dotenv
 import io
+from io import BytesIO
 import json
 import nextcord
 from nextcord.ext import commands
@@ -16,6 +17,7 @@ import re
 import requests
 import tempfile
 import textwrap
+import uuid
 
 load_dotenv()
 discord_token = os.getenv('DISCORD_TOKEN')
@@ -56,20 +58,6 @@ async def message_received_handler(dialog):
                     prompt.content.save(tmp_file, 'PNG')
                     tmp_file_path = tmp_file.name
                 await channel.send(file=nextcord.File(fp=tmp_file_path, filename='tmpImage.png'))
-                os.remove(tmp_file_path)
-            elif prompt.content_type == 'audio':
-                mime_type_to_extension = {
-                    "audio/mpeg": ".mp3",
-                    "audio/ogg": ".ogg",
-                    "audio/wav": ".wav"
-                }
-                file_extension = mime_type_to_extension.get(prompt.mime_type, ".bin")
-
-                with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as tmp_file:
-                    tmp_file.write(prompt.content)
-                    tmp_file_path = tmp_file.name
-
-                await channel.send(file=nextcord.File(fp=tmp_file_path, filename=f'tmpAudio{file_extension}'))
                 os.remove(tmp_file_path)
     return True
 
@@ -197,13 +185,11 @@ async def dall_e_3(
         requestAgentConfig = json.dumps(tmpConfig)
     agent = "OpenAI_DALLE3"
     dialog_id = str(interaction.user.id)
-    dialog_ids = list(myceliumRouter.dialogs.keys())
-    if not dialog_id in dialog_ids:
-        dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
-        myceliumRouter.dialogs[dialog_id]=dialog
     dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
     await interaction.response.send_message(f"Agent set OpenAI DALL-e 3, config: " + str(tmpConfig))
 
+<<<<<<< HEAD
+=======
 
 @bot.slash_command(name="mindsimulation_steos_voice", description="An amazing Text to Speech model for Russian and English")
 async def mindsimulation_steos_voice(
@@ -408,6 +394,7 @@ async def whisper_v3(interaction: Interaction,
     dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
     await interaction.response.send_message(f"Agent set OpenAI Whisper Large v3, config: " + str(tmpConfig))
 
+>>>>>>> test
 @bot.slash_command(name="gemini_pro", description="Multimodal Gemini Pro Vision from Vertex AI/Google to generate text from text, images and video")
 async def gemini_pro(interaction: Interaction,
         sub_model: str = SlashOption(
@@ -458,10 +445,6 @@ async def gemini_pro(interaction: Interaction,
         requestAgentConfig = json.dumps(tmpConfig)
     agent = "Google_GeminiProVision"
     dialog_id = str(interaction.user.id)
-    dialog_ids = list(myceliumRouter.dialogs.keys())
-    if not dialog_id in dialog_ids:
-        dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
-        myceliumRouter.dialogs[dialog_id]=dialog
     dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
     await interaction.response.send_message(f"Agent set Gemini Pro/Pro Vision, config: " + str(tmpConfig))
 
@@ -493,10 +476,6 @@ async def claude(interaction: Interaction,
         requestAgentConfig = json.dumps(tmpConfig)
     agent = "Anthropic_CLAUDE2.1"
     dialog_id = str(interaction.user.id)
-    dialog_ids = list(myceliumRouter.dialogs.keys())
-    if not dialog_id in dialog_ids:
-        dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
-        myceliumRouter.dialogs[dialog_id]=dialog
     dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
     await interaction.response.send_message(f"Agent set Anthropic CLAUDE 2.1, config: " + str(tmpConfig))
     
@@ -566,10 +545,6 @@ async def chat_gpt_completions(
         requestAgentConfig = json.dumps(tmpConfig)
     agent = "OpenAI_GPT_Completions"
     dialog_id = str(interaction.user.id)
-    dialog_ids = list(myceliumRouter.dialogs.keys())
-    if not dialog_id in dialog_ids:
-        dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
-        myceliumRouter.dialogs[dialog_id]=dialog
     dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
     await interaction.response.send_message(f"Agent set OpenAI GPT Completions, config: "  + str(tmpConfig))
     
@@ -604,10 +579,6 @@ async def LLaMa2(
         requestAgentConfig = json.dumps(tmpConfig)
     agent = "Meta_LLaMa2"
     dialog_id = str(interaction.user.id)
-    dialog_ids = list(myceliumRouter.dialogs.keys())
-    if not dialog_id in dialog_ids:
-        dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
-        myceliumRouter.dialogs[dialog_id]=dialog
     dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
     await interaction.response.send_message(f"Agent set LLaMa 2, config: " + str(tmpConfig) + ". It is highly recommended to set up context for LLaMa 2 using the /restart command.")
     
@@ -643,10 +614,6 @@ async def yandex_gpt_full(
         requestAgentConfig = json.dumps(tmpConfig)
     agent = "YandexGPT2-FULL"
     dialog_id = str(interaction.user.id)
-    dialog_ids = list(myceliumRouter.dialogs.keys())
-    if not dialog_id in dialog_ids:
-        dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
-        myceliumRouter.dialogs[dialog_id]=dialog
     dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
     await interaction.response.send_message(f"Agent set YandexGPT v2, config: " + str(tmpConfig) + ". It is highly recommended to set up context for YandexGPT v2 using the /restart command.")
     
@@ -665,10 +632,15 @@ async def restart(
     if not dialog_id in dialog_ids:
         dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
         myceliumRouter.dialogs[dialog_id]=dialog
+<<<<<<< HEAD
+        dialog_configurations[dialog_id] = {"agent": "groot", "requestAgentConfig": ""}
+    
+=======
         if dialog_id not in dialog_configurations or dialog_configurations[dialog_id] is None:
             dialog_configurations[dialog_id] = {"agent": "groot", "requestAgentConfig": ""}
         else:
             dialog_configurations[dialog_id]['requestAgentConfig'] = ""
+>>>>>>> test
     if context:
         myceliumRouter.dialogs[dialog_id] = Dialog(messages=[Message(role="system", unified_prompts = [UnifiedPrompt(content_type = 'text', content = context, mime_type = 'text/plain')], sender_info="system")], dialog_id=dialog_id, reply_to = comradeai_token)
     else:
