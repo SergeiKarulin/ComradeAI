@@ -1,6 +1,6 @@
-############## Mycelium Version 0.18.10 of 2024.02.16 ##############
+############## Mycelium Version 0.18.11 of 2024.02.16 ##############
 
-from ComradeAI.Mycelium import Dialog, Message, UnifiedPrompt
+from Mycelium import Dialog, Message, UnifiedPrompt
 import aiohttp
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -541,3 +541,27 @@ class DialogToFileDownloader:
                         html_file.write(f'<a href="{url}" target="_blank">{url}</a><br>\n')
             
             html_file.write('</body>\n</html>')
+            
+class DialogCollapser:
+    def __init__(self, baseDialogNumber = 0):
+        self.baseDialogNumber = baseDialogNumber
+    
+    def __rrshift__(self, other):
+        return self.__Process(other)
+    
+    def __Process(self, other):
+        errorMessage = "Can only collapce a list of Dialog objects"
+        if isinstance(other, Dialog):
+            return other
+        elif isinstance(other, list):
+            try:
+                result = other[self.baseDialogNumber]
+            except Exception as ex:
+                print("BaseDialog error: " + str(ex))
+            for i, dialog in enumerate(other):
+                if isinstance(dialog, Dialog):
+                    if i != self.baseDialogNumber:
+                        result.messages.extend(dialog.messages)
+                else:
+                    raise TypeError(errorMessage)
+            return result

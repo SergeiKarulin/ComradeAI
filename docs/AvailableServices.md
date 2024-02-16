@@ -15,26 +15,7 @@ print(dialog)
 AI.connection.close()
 
 ```
-or asynchronous
-```python
-import asyncio
-from Mycelium import UnifiedPrompt, Message, Dialog, Mycelium, Agent
-
-async def main():
-    AI = Mycelium(ComradeAIToken="test_version0.20")
-    await AI.connectAsync()
-
-    llama2 = Agent(AI, "Meta_LLaMa2")
-
-    dialog = await AI.DialogAsync(textPrompt=["Hello! How are you?"], agent=llama2)
-
-    print(dialog)
-
-    await AI.connection.close()
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
+Async calls are under development and expected in the nearest versions. Meanwhile you can implement async calls manually.
 
 If you want to pass model parameteres to customize the Service behaviour, you may pass serviceParams dicto to Agent constructor. For example:
 

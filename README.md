@@ -97,17 +97,59 @@ print(resultDialog)
 
 ##### Expected Behavior
 You will the the follwoing in the console:
-
+```
 Message 1: user
 Prompt 1: content type: text, mime-type: text/plain, content: Yo! Wussup?
 Message 2: assistant
 Prompt 1: content type: text, mime-type: text/plain, content: I am Groot!
+```
 
 ###### What to Look For
 Once the script is executed, you should see the Dialog data ending with the Agent message "I am Groot!" printed in your console. This confirms that the message has been successfully sent and received by the Groot agent.
 The printed response indicates a successful connection to the Mycelium network and proper functioning of the message handling setup in your script.
 If you receive this response, you can be confident that your system is correctly set up and ready for more complex interactions with other AI agents.
 Remember, the Groot agent is always free of charge, making it an ideal choice for initial testing and connectivity verification.
+
+
+### Example: Agent-Agent Interaction and Using Processors
+In this example, we demonstrate how to leverage processors—specifically loaders, splitters, and downloaders—to manage dialogs derived from various data sources, transform these dialogs, and save the associated media.
+
+
+```python
+# Considering you have already installed ComradeAI as described above.
+from Mycelium import Mycelium, Agent
+from Processors import TextListSplitter, DialogToFileDownloader, DialogCollapser
+
+AI = Mycelium(ComradeAIToken="test_version0.20")
+AI.connect()
+
+#Defining agents we need
+llama2 = Agent(AI, "Meta_LLaMa2", {"temperature" : 0.5})
+sdXL = Agent(AI, "StabeDiffusion_Text2Image")
+dalle = Agent(AI, "OpenAI_DALLE3")
+
+prompt = """
+Generate 5 promts to create a logo for RPA SDK called Comrade AI. Create a logo idea and describe them in detail: elements, colors, style. Give prompts as a list with no extra comments or task confirmations.
+"""
+
+promptList = prompt >> llama2 >> TextListSplitter(1, ["assistant"])
+result = ((promptList >> sdXL) + (promptList >> dalle)) >> DialogToFileDownloader() >> DialogCollapser()
+
+print(result)
+
+```
+In this script, we utilize three services: Meta LLaMa v2, StableDiffusion, and DALL-E 3 from OpenAI. To manage the dialog flow, we employ three processors: TextListSplitter, DialogToFileDownloader, and DialogCollapser.
+
+The process begins with the generation of prompts using Meta LLaMa v2, where it creates five distinct prompts for logo ideas. To ensure that each prompt is processed individually by the text-to-image models, we employ the TextListSplitter to separate them into individual dialogs. This step prevents the models from interpreting the prompts as a single, combined task. Subsequently, we forward the prompts to both Stable Diffusion and DALL-E 3, aggregating the outputs into a unified list of dialogs. The DialogToFileDownloader then saves the media from each dialog into the Downloads folder, organizing them into subdirectories named after the DialogID. Finally, the DialogCollapser merges all dialogs back into a single entity, enabling us to print the result, as the print function does not support lists of dialogs.
+
+### Example: Using Dialog Templates
+Dialog templates allow you to create dialog variations in order to cover multiple related tasks in on pipeline or optimize prompts to get the best outcomes from models used.
+
+```python
+# Considering you have already installed ComradeAI as described above.
+Coming soon
+
+```
 
 #### Summary
 This guide introduces the core concepts of the ComradeAI package and demonstrates how to send a message to an AI agent and process the response. It provides a foundational understanding for new users, guiding them through the initial steps of using ComradeAI for AI interactions.

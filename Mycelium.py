@@ -1,4 +1,4 @@
-############## Mycelium Version 0.18.10 of 2024.02.16 ##############
+############## Mycelium Version 0.18.11 of 2024.02.16 ##############
 
 import aio_pika
 import base64
@@ -800,6 +800,7 @@ class Agent:
             print("Error purging awaiting messages: " + str(ex))
         
     def Invoke(self, dialogs):
+        dialogs = copy.deepcopy(dialogs)
         # Conceptual point. If the imput type is Dialog, we return a Dialog
         # But if it's a list of dialogs, we retrun a list of Dialog
         errorMessage = "Only a Dialog object, a string or a list of dialog objects/strings can be processed"
@@ -822,12 +823,12 @@ class Agent:
             result = resultDialogs
         return result
     
-    def __Process(self, dialog) -> Dialog:
+    def __Process(self, dialog) -> Dialog:     
         errorMessage = "Only a Dialog object or a list of dialog class objects can be processed"
         if not isinstance(dialog, Dialog):
             raise TypeError (errorMessage)
 
-        if not self.mycelium.connection:
+        if not self.mycelium.connection or not self.mycelium.connection.is_open:
             self.mycelium.connect()
 
         # Define headers
@@ -848,13 +849,24 @@ class Agent:
             correlation_id=str(dialog.dialog_id),
             headers=headers
         )
-        self.mycelium.chanel.basic_publish(
-            exchange='',
-            routing_key=self.mycelium.output_chanel,
-            body=dialog.serialize_and_compress(),
-            properties=properties
-        )
+        def TryPublish(self, dialog, properties):
+            self.mycelium.chanel.basic_publish(
+                exchange='',
+                routing_key=self.mycelium.output_chanel,
+                body=dialog.serialize_and_compress(),
+                properties=properties
+            )
+        def TryConsume():
+            self.mycelium.chanel.basic_consume(queue=self.mycelium.input_chanel, on_message_callback=callback, auto_ack=False)
+            self.mycelium.chanel.start_consuming()
 
+        try:
+            TryPublish(self, dialog, properties)
+        except aio_pika.exceptions.AMQPError as e:
+            self.mycelium.connect()
+            TryPublish(self, dialog, properties)
+        except Exception as e:
+            print(f"Unexpected error during connection check: {e}")
         def callback(ch, method, properties, body):
             new_dialog = Dialog(reply_to=properties.reply_to, dialog_id=properties.correlation_id)
             dialog_id = new_dialog.dialog_id
@@ -865,9 +877,14 @@ class Agent:
             ch.basic_ack(delivery_tag=method.delivery_tag)
             self.mycelium.chanel.stop_consuming()
 
-        self.mycelium.chanel.basic_consume(queue=self.mycelium.input_chanel, on_message_callback=callback, auto_ack=False)
-
-        self.mycelium.chanel.start_consuming()
+        try:
+            TryConsume()
+        except aio_pika.exceptions.AMQPError as e:
+            self.mycelium.connect()
+            TryConsume()
+        except Exception as e:
+            print(f"Unexpected error during connection check: {e}")
+        
         return self.mycelium.dialogs.get(dialog.dialog_id)
     
     async def StreamAsync(self, dialogs):
