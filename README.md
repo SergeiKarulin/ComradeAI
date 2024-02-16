@@ -45,9 +45,6 @@ Agent is an abstraction that incapsulates some AI Service plus its specific conf
 #### Processors
 Tools to load, transform and download data keeping it compatible with ComradeAI Agents. A list of processors is available (here)[docs/Processors.md].
 
-### Handling Responses: `message_received_handler` Function
-This function is crucial for processing responses from AI agents. It is called every time Mycelium receives a response, adding it to the corresponding Dialog.
-
 ### Groot Agent: Testing Connectivity to Mycelium
 The Groot agent is utilized primarily for testing and confirming a successful connection to the Mycelium network. When you send a message to the Groot agent, it always responds with "I am Groot!" This consistent response is an easy and reliable way to verify that your setup is correctly configured and that you are successfully communicating with Mycelium. If you receive this response, you can be confident that your environment is ready for more advanced interactions with other AI agents.
 
