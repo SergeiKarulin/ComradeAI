@@ -695,6 +695,8 @@ class Mycelium:
     async def send_to_mycelium(self, dialog_id, isReply = False, newestMessagesToSend = 1, autogenerateRoutingStrategies = False):
         #autogenerateRoutingStrategies applies dialog.reply_to as direct parameter to all messages being sent
         #newestMessagesToSend and autogenerateRoutingStrategies applicable only when isReply == True
+        
+        #TODO. Introduce excepton processing in case connection is dead.
         if not self.chanel:
             await self.connect_to_mycelium()
         
