@@ -2,32 +2,20 @@
 You can utilize any available Service using its name in the following manner:
 ```python
 
+import asyncio
 from ComradeAI.Mycelium import Mycelium, Agent
-from ComradeAI.Processors import TextListSplitter, DialogToFileDownloader, DialogCollapser
 
-AI = Mycelium(ComradeAIToken=YOUR_COMRADE_AI_TOKEN)
+AI = Mycelium(ComradeAIToken=YOUR_COMRADEAI_TOKEN)
 AI.connect()
 
-#Defining agents we need
-llama2 = Agent(AI, "Meta_LLaMa2", {"temperature" : 0.5})
-sdXL = Agent(AI, "StabeDiffusion_Text2Image")
-dalle = Agent(AI, "OpenAI_DALLE3")
+llama2 = Agent(AI, "Meta_LLaMa2")
 
-prompt = """
-Generate 5 promts to create a logo for Robotic Process Automation SDK called Comrade AI. Logo must one or two colored, wired. Give prompts as a list with no extra comments or task confirmations.
-"""
-# We provide prompt to LLaMa v2, then split last assistant responce into separate commands and save them into a list named promptLits.
-promptList = prompt >> llama2 >> TextListSplitter(1, ["assistant"])
-# We process promptList with Stable Diffusion and with DALL-e 3, then we unite results into one list of dialogs, download them all, 
-# and then concatenate in one dialog to print.
-result = ((promptList >> sdXL) + (promptList >> dalle)) >> DialogToFileDownloader() >> DialogCollapser()
-
-print(result)
+dialog = AI.Dialog(textPrompt=["Hello! How are you?"], agent=llama2)
+print(dialog)
 
 AI.connection.close()
 
 ```
-
 Async calls are under development and expected in the nearest versions. Meanwhile you can implement async calls manually.
 
 If you want to pass model parameteres to customize the Service behaviour, you may pass serviceParams dicto to Agent constructor. For example:
