@@ -1,5 +1,6 @@
 from ComradeAI.DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConverter
 from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
+
 import asyncio
 import os
 import io
@@ -12,6 +13,8 @@ import re
 
 from PIL import Image
 from io import BytesIO
+
+import textwrap
 
 load_dotenv()
 bot = AsyncTeleBot(os.getenv('TELEGRAM_TOKEN'))
@@ -60,6 +63,11 @@ async def init_model_for_user(command, dialog_id):
         myceliumRouter.dialogs[dialog_id].requestAgentConfig=dialog_configs[dialog_id]['requestAgentConfig']
     return True
 
+async def send_long_message(chat_id, text, max_length=4096):
+    parts = textwrap.wrap(text, max_length)
+    for part in parts:
+        await bot.send_message(chat_id, part)
+
 @bot.message_handler(commands=['start'])
 async def start(message):
     global hello_messages
@@ -85,10 +93,29 @@ async def start(message):
     dialog_id = str(message.chat.id)
     dialog_ids = dialog_configs.keys()
     if dialog_id in dialog_ids:
-        await myceliumRouter.send_to_mycelium(dialog_id, isReply=False)
-        dialog_lockers[dialog_id] = False
+        if len(myceliumRouter.dialogs[dialog_id].messages) > 0:
+            await myceliumRouter.send_to_mycelium(dialog_id, isReply=False)
+            myceliumRouter.dialogs[dialog_id].messages = []
+            dialog_lockers[dialog_id] = False
+        else:
+             await bot.send_message(message.chat.id, "There is no messages to send.")
     else:
-        await bot.send_message(message.chat.id, "There is no album to send. Start with /album_compose command.")
+        await bot.send_message(message.chat.id, "There is no album to send. Start with /album_compose command then send some messages and call /album_send afterwards.")
+    return
+
+@bot.message_handler(commands=['album_cancel'])
+async def start(message):
+    global dialog_lockers
+    global myceliumRouter
+    dialog_id = str(message.chat.id)
+    dialog_ids = dialog_configs.keys()
+    if dialog_id in dialog_ids:
+        if dialog_modes[dialog_id] == "ctx_amnesia":
+            myceliumRouter.dialogs[dialog_id].messages = []
+        dialog_lockers[dialog_id] = False
+        await bot.send_message(message.chat.id, "Album compose mode calnceled.")
+    else:
+        await bot.send_message(message.chat.id, "There is nothing to cancel. Start with /album_compose command.")
     return
 
 @bot.message_handler(commands=['album_compose'])
@@ -115,7 +142,7 @@ async def start(message):
     dialog_modes[dialog_id] = "ctx_amnesia"
     if dialog_id in dialog_ids:
         myceliumRouter.dialogs[dialog_id].messages = []
-    await bot.send_message(message.chat.id, "Bot will send to AI agents your last message only. Use /dialog to switch for sending the entire conversation.")
+    await bot.send_message(message.chat.id, "Bot will send to AI agents your last message only. Use /ctx_dialog to switch for sending the entire conversation.")
     return
 
 @bot.message_handler(func=lambda message: True == message.text.startswith("/"))
@@ -235,6 +262,8 @@ async def echo_message(message):
     myceliumRouter.dialogs[str(message.chat.id)].messages.append(new_message)
     if str(message.chat.id) not in dialog_lockers or dialog_lockers[str(message.chat.id)] != True:
         await myceliumRouter.send_to_mycelium(str(message.chat.id), isReply=False)
+        if dialog_modes[str(message.chat.id)] == "ctx_amnesia":
+            myceliumRouter.dialogs[str(message.chat.id)].messages = [] 
     return True
 
 async def message_received_handler(dialog):
@@ -242,7 +271,7 @@ async def message_received_handler(dialog):
     for message in dialog.messages:
         for unified_prompt in message.unified_prompts:
             if unified_prompt.content_type == 'text':
-                await bot.send_message(int(dialog.dialog_id), unified_prompt.content)
+                await send_long_message(int(dialog.dialog_id), unified_prompt.content)
             if unified_prompt.content_type == 'image':
                 with io.BytesIO() as output:
                     unified_prompt.content.save(output, format="JPEG")
@@ -291,7 +320,7 @@ available_model_configs = {
     "/gemini_pro_creative": {"agent": "Google_GeminiProVision", "requestAgentConfig": {"model": "gemini-pro", "temperature": 0.8}},
     "/gemini_pro_vision_normal": {"agent": "Google_GeminiProVision", "requestAgentConfig": {"model": "gemini-pro-vision", "temperature": 0.8}},
     "/gemini_pro_normal" : {"agent": "Google_GeminiProVision", "requestAgentConfig": {"model": "gemini-pro", "temperature": 0.4}},
-    "/claude" : {"agent": "Anthropic_CLAUDE2.1", "requestAgentConfig": {}},
+    "/claude" : {"agent": "Anthropic_CLAUDE3", "requestAgentConfig": {}},
     "/chat_gpt" : {"agent": None, "inlineButtons": [{"text": "GPT3.5", "callback_data": "/chat_gpt_3_5_normal"}, 
                                                       {"text": "GPT3.5 - буйная фантазия", "callback_data": "/chat_gpt_3_5_creative"}, 
                                                       {"text": "GPT4", "callback_data": "/chat_gpt_4_normal"}, 
@@ -309,6 +338,14 @@ available_model_configs = {
     "/yandex_gpt_2_creative": {"agent": "YandexGPT2-FULL", "requestAgentConfig": {"temperature": 0.2}},
     "/yandex_gpt_2_normal": {"agent": "YandexGPT2-FULL", "requestAgentConfig": {"temperature": 0.6}},
     "/whisper_large_v3": {"agent": "Whisper_v3_Large", "requestAgentConfig": {}},
+    "/gemma": {"agent": "Google_Gemma_7b", "requestAgentConfig": {"temperature": 0.7}},
+    "/bark": {"agent": "Suno_Bark", "requestAgentConfig": {}},
+    "/xtts": {"agent": "Coqui_XTTS", "requestAgentConfig": {}},
+    "/meta_mms": {"agent": "Meta_MMS", "requestAgentConfig": {}},
+    "/google_docs_ai": {"agent": "Google_DocsAI", "requestAgentConfig": {}},
+    "/paddle_ocr": {"agent": "Paddle_OCR", "requestAgentConfig": {}},
+    "/microsoft_trocr": {"agent": "Microsoft_TrOCR", "requestAgentConfig": {}},
+    "/mistralai" : {"agent": "MistralAI_Mixtral7b_Instruct", "requestAgentConfig": {"temperature": 0.4}}
 }
 
 dialog_configs = {}
