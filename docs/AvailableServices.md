@@ -3,7 +3,7 @@ You can utilize any available Service using its name in the following manner:
 ```python
 
 import asyncio
-from Mycelium import UnifiedPrompt, Message, Dialog, Mycelium, Agent
+from ComradeAI.Mycelium import Mycelium, Agent
 
 AI = Mycelium(ComradeAIToken=YOUR_COMRADEAI_TOKEN)
 AI.connect()
