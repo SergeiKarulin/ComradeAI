@@ -114,10 +114,10 @@ In this example, we demonstrate how to leverage processors—specifically loader
 
 ```python
 # Considering you have already installed ComradeAI as described above.
-from Mycelium import Mycelium, Agent
-from Processors import TextListSplitter, DialogToFileDownloader, DialogCollapser
+from ComradeAI.Mycelium import Mycelium, Agent
+from ComradeAI.Processors import TextListSplitter, DialogToFileDownloader, DialogCollapser
 
-AI = Mycelium(ComradeAIToken="test_version0.20")
+AI = Mycelium(ComradeAIToken=YOUR_COMRADE_AI_TOKEN)
 AI.connect()
 
 #Defining agents we need
@@ -126,13 +126,17 @@ sdXL = Agent(AI, "StabeDiffusion_Text2Image")
 dalle = Agent(AI, "OpenAI_DALLE3")
 
 prompt = """
-Generate 5 promts to create a logo for RPA SDK called Comrade AI. Create a logo idea and describe them in detail: elements, colors, style. Give prompts as a list with no extra comments or task confirmations.
+Generate 5 promts to create a logo for Robotic Process Automation SDK called Comrade AI. Logo must one or two colored, wired. Give prompts as a list with no extra comments or task confirmations.
 """
-
+# We provide prompt to LLaMa v2, then split last assistant responce into separate commands and save them into a list named promptLits.
 promptList = prompt >> llama2 >> TextListSplitter(1, ["assistant"])
+# We process promptList with Stable Diffusion and with DALL-e 3, then we unite results into one list of dialogs, download them all, 
+# and then concatenate in one dialog to print.
 result = ((promptList >> sdXL) + (promptList >> dalle)) >> DialogToFileDownloader() >> DialogCollapser()
 
 print(result)
+
+AI.connection.close()
 
 ```
 In this script, we utilize three services: Meta LLaMa v2, StableDiffusion, and DALL-E 3 from OpenAI. To manage the dialog flow, we employ three processors: TextListSplitter, DialogToFileDownloader, and DialogCollapser.
