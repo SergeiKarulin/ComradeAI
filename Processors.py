@@ -1,4 +1,4 @@
-############## Mycelium Version 0.18.11 of 2024.02.16 ##############
+############## Mycelium Version 0.18.18 of 2024.02.23 ##############
 
 from Mycelium import Dialog, Message, UnifiedPrompt
 import aiohttp
@@ -22,6 +22,7 @@ from xml.dom import minidom
 
 class MessageSplitter:
     def __init__ (self, acceptedRoles=[]):
+        #TODO. We need lastMessageCount here. To use the splitter for showing the last model outcome.
         self.acceptedRoles = acceptedRoles
         
     def __rrshift__(self, other):
@@ -340,6 +341,7 @@ class UrlLoader:
             prompts = []
             for link in links:
                 pageContent = self.url_text(link)
+                #TODO. Shouldn't it be an url content_type?
                 prompts.append(UnifiedPrompt(content_type="text", content=pageContent, mime_type="text/plain"))
             if len(prompts) > 0:
                 message = Message(unified_prompts=prompts, role ="user", sender_info="ComradeAI user", send_datetime=datetime.now())

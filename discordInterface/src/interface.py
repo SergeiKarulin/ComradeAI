@@ -188,8 +188,6 @@ async def dall_e_3(
     dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
     await interaction.response.send_message(f"Agent set OpenAI DALL-e 3, config: " + str(tmpConfig))
 
-<<<<<<< HEAD
-=======
 
 @bot.slash_command(name="mindsimulation_steos_voice", description="An amazing Text to Speech model for Russian and English")
 async def mindsimulation_steos_voice(
@@ -394,7 +392,6 @@ async def whisper_v3(interaction: Interaction,
     dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
     await interaction.response.send_message(f"Agent set OpenAI Whisper Large v3, config: " + str(tmpConfig))
 
->>>>>>> test
 @bot.slash_command(name="gemini_pro", description="Multimodal Gemini Pro Vision from Vertex AI/Google to generate text from text, images and video")
 async def gemini_pro(interaction: Interaction,
         sub_model: str = SlashOption(
@@ -448,7 +445,7 @@ async def gemini_pro(interaction: Interaction,
     dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
     await interaction.response.send_message(f"Agent set Gemini Pro/Pro Vision, config: " + str(tmpConfig))
 
-@bot.slash_command(name="claude", description="Anthropic CLAUDE 2.1 text-2-text model. Shows great creativity perfomance.")
+@bot.slash_command(name="claude", description="Anthropic CLAUDE text/image-2-text model. Great creativity perfomance.")
 async def claude(interaction: Interaction,
         temperature: float = SlashOption(
             name="temperature",
@@ -474,10 +471,10 @@ async def claude(interaction: Interaction,
     if temperature is not None or top_k is not None or stop_sequences is not None:
         tmpConfig = {"temperature" : temperature, "top_k" : top_k, "stop_sequences" : stop_sequences}
         requestAgentConfig = json.dumps(tmpConfig)
-    agent = "Anthropic_CLAUDE2.1"
+    agent = "Anthropic_CLAUDE3"
     dialog_id = str(interaction.user.id)
     dialog_configurations[dialog_id] = {"agent": agent, "requestAgentConfig": requestAgentConfig}
-    await interaction.response.send_message(f"Agent set Anthropic CLAUDE 2.1, config: " + str(tmpConfig))
+    await interaction.response.send_message(f"Agent set Anthropic CLAUDE, config: " + str(tmpConfig))
     
 @bot.slash_command(name="chat_gpt_completions", description="Agent OpenAI Completions: GPT3-Turbo, GPT4, GPT4 vision to generate text from text and images")
 async def chat_gpt_completions(
@@ -632,15 +629,10 @@ async def restart(
     if not dialog_id in dialog_ids:
         dialog = Dialog(messages=[], dialog_id=dialog_id, reply_to=comradeai_token)
         myceliumRouter.dialogs[dialog_id]=dialog
-<<<<<<< HEAD
-        dialog_configurations[dialog_id] = {"agent": "groot", "requestAgentConfig": ""}
-    
-=======
         if dialog_id not in dialog_configurations or dialog_configurations[dialog_id] is None:
             dialog_configurations[dialog_id] = {"agent": "groot", "requestAgentConfig": ""}
         else:
             dialog_configurations[dialog_id]['requestAgentConfig'] = ""
->>>>>>> test
     if context:
         myceliumRouter.dialogs[dialog_id] = Dialog(messages=[Message(role="system", unified_prompts = [UnifiedPrompt(content_type = 'text', content = context, mime_type = 'text/plain')], sender_info="system")], dialog_id=dialog_id, reply_to = comradeai_token)
     else:

@@ -1,4 +1,4 @@
-############## Mycelium Version 0.18.11 of 2024.02.16 ##############
+############## Mycelium Version 0.18.18 of 2024.02.23 ##############
 
 import aio_pika
 import base64
@@ -212,6 +212,7 @@ class Dialog:
                         raise TypeError ("textPrompt must be either a string or a list of strings")
         if imagePrompt:
             if not isinstance(imagePrompt, Image.Image) and not isinstance(imagePrompt, list):
+                #TODO. Process the file path(s) to load image
                 raise TypeError ("imagePrompt must be either a Pillow Image or a list of Pillow Images")
             if isinstance(imagePrompt, Image.Image):
                 imagePrompt = [imagePrompt]
@@ -222,28 +223,28 @@ class Dialog:
                     else:
                         raise TypeError ("imagePrompt must be either a Pillow Image or a list of Pillow Images")
         if audioPrompt and audioMimeType:
-            if not isinstance(audioPrompt, bytearray) and not isinstance(audioPrompt, list):
+            if not isinstance(audioPrompt, bytes) and not isinstance(audioPrompt, list):
+                #TODO. Process the file path(s) to load audio file
                 raise TypeError("audioPrompt must be either a Byte array or a list of byte arrays")
             if not isinstance(audioMimeType, str) and not isinstance(audioMimeType, list):
                 raise TypeError("audioMimeType must be either a string starting with audio/ or a list of strings where each starts with audio/")
-            if isinstance(audioPrompt, bytearray):
+            if isinstance(audioPrompt, bytes):
                 audioPrompt = [audioPrompt]
             if isinstance(audioMimeType, str):
                 audioMimeType = [audioMimeType]
-            i = 0
-            for audio in audioPrompt:
+            for i, audio in enumerate(audioPrompt):
                 if i < len(audioMimeType):
                     mimeType = audioMimeType[i]
                 else:
                     mimeType = audioMimeType[0]
-                if isinstance(audio, bytearray) and mimeType.startswith("audio/"):
-                    unifiedPrompts.append(UnifiedPrompt(content_type="audio", content=audioPrompt, mime_type=mimeType))
+                if isinstance(audio, bytes) and mimeType.startswith("audio/"):
+                    unifiedPrompts.append(UnifiedPrompt(content_type="audio", content=audioPrompt[i], mime_type=mimeType))
                 else:
                     raise TypeError("audioMimeType must be either a string starting with audio/ or a list of strings where each starts with audio/")
-                i += 1
         if documentPrompt and documentMimeType:
             print("Not implemented...")
             #TODO. Finish for 3 document types (XLSXm DOCX, XML???)
+            #TODO. Process the file path(s) to load document
         message = Message(role="user", unified_prompts=unifiedPrompts, sender_info="ComradeAI Client", send_datetime=datetime.datetime.now())
         resultDialog = Dialog(messages=[message])
         resultDialog._update_totals()
@@ -662,7 +663,8 @@ class Mycelium:
             queue = await self.chanel.declare_queue(self.input_chanel)
             async with queue.iterator() as queue_iter:
                 async for message in queue_iter:
-                    async with message.process():
+                    await message.ack()
+                    try:                        
                         headers = message.headers
                         dialog = Dialog(reply_to=message.reply_to, dialog_id=message.correlation_id)
                         dialog_id = dialog.dialog_id #We use it further to find the dialog after adding to self.dialogs.
@@ -689,14 +691,16 @@ class Mycelium:
                                 self.dialogs[dialog_id]._update_totals() #We call it for the 2nd time to update after possible manipulations in message_received_callback()
                             else:
                                 self.dialogs = {}
+                    except Exception as process_ex:
+                        print(f"Error processing message: {process_ex}")
         except Exception as ex:
             print("Failed to start server. Error: " + str(ex))
+            
+    async def ensure_connected(self):
+        if not self.connection or self.connection.is_closed:
+            await self.connectAsync()  # Assumes connectAsync() is your method to asynchronously connect
 
-    async def send_to_mycelium(self, dialog_id, isReply = False, newestMessagesToSend = 1, autogenerateRoutingStrategies = False):
-        #autogenerateRoutingStrategies applies dialog.reply_to as direct parameter to all messages being sent
-        #newestMessagesToSend and autogenerateRoutingStrategies applicable only when isReply == True
-        
-        #TODO. Introduce excepton processing in case connection is dead.
+    async def send_to_mycelium(self, dialog_id, isReply = False, newestMessagesToSend = 1, autogenerateRoutingStrategies = False):          
         if not self.chanel:
             await self.connect_to_mycelium()
         
@@ -742,7 +746,15 @@ class Mycelium:
         
         message = aio_pika.Message(body=compressed_dialog, correlation_id=str(dialog_id), headers=headers, reply_to=self.dialogs[dialog_id].reply_to)
         routing_key = self.output_chanel
-        await self.chanel.default_exchange.publish(message, routing_key=routing_key)
+        try:
+            await self.ensure_connected()
+            await self.chanel.default_exchange.publish(message, routing_key=routing_key)
+        except aio_pika.exceptions.AMQPConnectionError as e:
+            print(f"Connection error detected: {e}. Attempting to reconnect...")
+            await self.connect_to_mycelium()
+            await self.chanel.default_exchange.publish(message, routing_key=routing_key)  # Retry publishing
+        except Exception as e:
+            print(f"Failed to sort connection problem by reconnecting: {e}")
     
     async def close(self):
         await self.connection.close()
@@ -838,7 +850,10 @@ class Agent:
             'billingData': json.dumps([]),
             'routingStrategy': RoutingStrategy(strategy="direct", params=self.service).to_json(),
         }
+        dialog.lastMessageRoutingStrategy = RoutingStrategy(strategy="direct", params=self.service)
+        
         if self.serviceParams != "" and self.serviceParams is not None:
+            dialog.requestAgentConfig = self.serviceParams
             headers['requestAgentConfig'] = json.dumps(self.serviceParams)
 
         # Put the dialog into Mycelium and add relevant reply_to
@@ -966,11 +981,11 @@ class DialogTemplate():
                     else:
                         raise TypeError ("imagePrompt must be either a Pillow Image or a list of Pillow Images")
         if audioPrompt and audioMimeType:
-            if not isinstance(audioPrompt, bytearray) and not isinstance(audioPrompt, list):
+            if not isinstance(audioPrompt, bytes) and not isinstance(audioPrompt, list):
                 raise TypeError("audioPrompt must be either a Byte array or a list of byte arrays")
             if not isinstance(audioMimeType, str) and not isinstance(audioMimeType, list):
                 raise TypeError("audioMimeType must be either a string starting with audio/ or a list of strings where each starts with audio/")
-            if isinstance(audioPrompt, bytearray):
+            if isinstance(audioPrompt, bytes):
                 audioPrompt = [audioPrompt]
             if isinstance(audioMimeType, str):
                 audioMimeType = [audioMimeType]
@@ -980,7 +995,7 @@ class DialogTemplate():
                     mimeType = audioMimeType[i]
                 else:
                     mimeType = audioMimeType[0]
-                if isinstance(audio, bytearray) and mimeType.startswith("audio/"):
+                if isinstance(audio, bytes) and mimeType.startswith("audio/"):
                     unifiedPrompts.append(UnifiedPrompt(content_type="audio", content=audioPrompt, mime_type=mimeType))
                 else:
                     raise TypeError("audioMimeType must be either a string starting with audio/ or a list of strings where each starts with audio/")
