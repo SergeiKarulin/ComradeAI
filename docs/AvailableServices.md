@@ -1,7 +1,6 @@
 # Available Services and their paramenters
 You can utilize any available Service using its name in the following manner:
 ```python
-
 from ComradeAI.Mycelium import Mycelium, Agent
 from ComradeAI.Processors import TextListSplitter, DialogToFileDownloader, DialogCollapser
 
