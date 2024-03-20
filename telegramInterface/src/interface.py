@@ -10,6 +10,7 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot import types
 import tempfile
 import re
+import sys
 
 from PIL import Image
 from io import BytesIO
@@ -358,7 +359,11 @@ myceliumRouter = Mycelium(ComradeAIToken=comradeai_token, message_received_callb
 async def main():
     server_task = myceliumRouter.start_server(allowNewDialogs=False)
     bot_task = bot.polling()
-    await asyncio.gather(server_task, bot_task)
+    try:
+        await asyncio.gather(server_task, bot_task)
+    except Exception as ex:
+        print("Error executing concurent threads: " + str(ex))
+        sys.exit(1)
 
 if __name__ == "__main__":
     asyncio.run(main())
