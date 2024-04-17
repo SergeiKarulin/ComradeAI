@@ -410,6 +410,7 @@ available_model_configs = {
                                                       {"text": "English language", "callback_data": "/transcriber_en"}]},   
     "/transcriber_ru": {"agent": "Transcriber", "requestAgentConfig": {"language": "ru"}},
     "/transcriber_en": {"agent": "Transcriber", "requestAgentConfig": {"language": "en"}}
+
 }
 
 dialog_configs = {}
