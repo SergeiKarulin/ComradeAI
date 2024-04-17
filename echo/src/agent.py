@@ -1,5 +1,6 @@
 from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
 #from Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
+from datetime import datetime
 from dotenv import load_dotenv
 import os
 import asyncio
@@ -11,24 +12,13 @@ agentRMQPass = os.getenv('RABBITMQ_DEFAULT_AGENT_PASS')
 agentRMQHost = os.getenv('RABBITMQ_HOST')
 agentRMQvHost = os.getenv('RABBITMQ_VHOST')
 agentRMQQueueName = os.getenv('RABBITMQ_QUEUE')
-script_dir = os.path.dirname(os.path.abspath(__file__))
 
 async def server_logic(dialog):
-    subAccount = ""
-    if len(dialog.messages)>0:
-        subAccount = dialog.messages[-1].subAccount
-        
-    image = Image.open(script_dir + "/groot.png")
-    with open(script_dir + "/groot.mp3", 'rb') as mp3_file:
-        mp3 = mp3_file.read()
-        
-    prompts = [UnifiedPrompt(content_type="text", content="I am Groot!", mime_type="text/plain"),
-               UnifiedPrompt(content_type="image", content=image, mime_type="image/png"),
-               UnifiedPrompt(content_type="audio", content=mp3, mime_type="audio/mp3")]
-    message = Message(role="assistant", unified_prompts=prompts, sender_info="Groot", subAccount=subAccount, diagnosticData={"AgentDiagnosticData" : "Non-eror test"}, billingData=[{"agent" : "groot", "currency" : "USD", "cost" : 0.0}])
-    myceliumRouter.dialogs[dialog.dialog_id].messages.extend([message])
-    #await myceliumRouter.dialogs[dialog.dialog_id].generate_error_message("I am Error!", sender_info="Groot", diagnosticData={"AgentDiagnosticData" : "Error Test"}, billingData = [])
     try:
+        myceliumRouter.dialogs[dialog.dialog_id].messages[-1].role = "assistant"
+        myceliumRouter.dialogs[dialog.dialog_id].messages[-1].sender_info = "echo"
+        myceliumRouter.dialogs[dialog.dialog_id].messages[-1].send_datetime = datetime.now()
+        
         await myceliumRouter.send_to_mycelium(dialog.dialog_id, isReply=True, newestMessagesToSend=1, autogenerateRoutingStrategies=True)
         #If we enable error message for testing, newestMessagesToSend must be set to 2
     except Exception as ex:

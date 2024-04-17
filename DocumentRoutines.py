@@ -1,5 +1,5 @@
-############## Mycelium Version 0.18.18 of 2024.02.23 ##############
-#Documents routines are deprecated. All the functions moved to Processors and became DOCXLoader and XLSXLoader.
+############## Mycelium Version 0.18.19 of 2024.03.27 ##############
+# Documents routines are deprecated. All the functions moved to Processors and became DOCXLoader and XLSXLoader.
 
 from Mycelium import UnifiedPrompt
 

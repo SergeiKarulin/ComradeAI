@@ -1,0 +1,22 @@
+<html>
+<head>
+	<title>Comrade AI Process Studio</title>
+	<link rel="stylesheet" type="text/css" href="litegraph.css">
+	<script type="text/javascript" src="litegraph.js"></script>
+</head>
+<body style='width:100%; height:100%'>
+<canvas id='mycanvas' width='1024' height='720' style='border: 1px solid'></canvas>
+<script>
+var graph = new LGraph();
+
+var canvas = new LGraphCanvas("#mycanvas", graph);
+
+var key_const = LiteGraph.createNode("input/Comrade AI Configuration");
+key_const.pos = [50,50];
+graph.add(key_const);
+
+graph.start()
+
+</script>
+</body>
+</html>

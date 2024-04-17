@@ -5,4 +5,7 @@ pymysql-pool
 python-dotenv
 python-docx
 requests
-telebot
+fastapi
+pydantic
+python-multipart
+uvicorn[standard]

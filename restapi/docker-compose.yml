@@ -1,0 +1,7 @@
+version: "3.8"
+services:
+  inteface:
+    build: .
+    restart: always
+    ports:
+    - "8000:8000" # Port for restapi/uvicorn

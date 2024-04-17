@@ -10,3 +10,4 @@ venv/
 telegramInterface_devstage*
 test*.py
 downloads*
+temp*
