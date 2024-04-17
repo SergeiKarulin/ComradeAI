@@ -246,6 +246,7 @@ class Dialog:
             print("Not implemented...")
             #TODO. Finish for 3 document types (XLSXm DOCX, XML???)
             #TODO. Process the file path(s) to load document
+
         message = Message(role="user", unified_prompts=unifiedPrompts, sender_info="ComradeAI Client", send_datetime=datetime.now())
         resultDialog = Dialog(messages=[message])
         resultDialog._update_totals()
@@ -747,8 +748,10 @@ class Mycelium:
         
         message = aio_pika.Message(body=compressed_dialog, correlation_id=str(dialog_id), headers=headers, reply_to=self.dialogs[dialog_id].reply_to)
         routing_key = self.output_chanel
+        
         # print(str(datetime.now()) + " Sending message with headers: " + str(message.headers))
         # sys.stdout.flush() # This is how we sorted out 4 month flaky error with type2 MQ headers
+
         try:
             await self.ensure_connected()
             await self.chanel.default_exchange.publish(message, routing_key=routing_key)
