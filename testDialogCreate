@@ -1,0 +1,11 @@
+from ComradeAI.Mycelium import Mycelium, Dialog, Agent
+
+AI = Mycelium(ComradeAIToken="test_version0.20")
+AI.connect()
+
+groot = Agent(AI, "groot")
+strings = ["Line 1", "Line 2", "Line 3", "Line 4"]
+dialog = Dialog.Create(strings)
+resultDialog = dialog >> groot
+
+print(resultDialog)
