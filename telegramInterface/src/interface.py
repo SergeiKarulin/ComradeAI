@@ -2,6 +2,7 @@ from ComradeAI.DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConv
 from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
 
 import asyncio
+from datetime import datetime
 import os
 import io
 from dotenv import load_dotenv
@@ -197,47 +198,99 @@ async def echo_message(message):
         await bot.reply_to(message, "Your message contains an album. You will have to use /album_send command after sending everything you need to process.")
     unifiedPrompts = []
     if message.content_type == 'voice':
-        file_info = await bot.get_file(message.voice.file_id)
-        downloaded_file = await bot.download_file(file_info.file_path)
-        unifiedPrompts.append(UnifiedPrompt(content_type='audio', content=downloaded_file, mime_type='audio/ogg'))
-    if message.content_type == 'audio':
-        if message.audio.mime_type in ["audio/mpeg", "audio/ogg", "audio/wav"]:
-            file_info = await bot.get_file(message.audio.file_id)
+        print(str(datetime.now()) + " Receiving voice from user")
+        sys.stdout.flush()
+        try:
+            file_info = await bot.get_file(message.voice.file_id)
             downloaded_file = await bot.download_file(file_info.file_path)
-            unifiedPrompts.append(UnifiedPrompt(content_type='audio', content=downloaded_file, mime_type=message.audio.mime_type))
+            unifiedPrompts.append(UnifiedPrompt(content_type='audio', content=downloaded_file, mime_type='audio/ogg'))
+        except Exception as ex:
+            print(str(ex))
+            sys.stdout.flush()
+            await bot.reply_to(message, "Your message caused an error: " + str(ex))
+            return False
+    if message.content_type == 'audio':
+        print(str(datetime.now()) + " Receiving audio from user")
+        sys.stdout.flush()
+        if message.audio.mime_type in ["audio/mpeg", "audio/ogg", "audio/wav"]:
+            try:
+                file_info = await bot.get_file(message.audio.file_id)
+                downloaded_file = await bot.download_file(file_info.file_path)
+                unifiedPrompts.append(UnifiedPrompt(content_type='audio', content=downloaded_file, mime_type=message.audio.mime_type))
+            except Exception as ex:
+                print(str(ex))
+                sys.stdout.flush()
+                await bot.reply_to(message, "Your message caused an error: " + str(ex))
+                return False
     if message.content_type == 'text':
+        print(str(datetime.now()) + " Receiving text from user")
+        sys.stdout.flush()
         unifiedPrompts.append(UnifiedPrompt(content_type='text', content=message.text, mime_type='text/plain'))
     if message.content_type in ['document', 'photo', 'audio', 'video'] and message.caption != None:
         unifiedPrompts.append(UnifiedPrompt(content_type='text', content=message.caption, mime_type='text/plain'))
     if message.content_type == 'photo':
+        print(str(datetime.now()) + " Receiving photo from user")
+        sys.stdout.flush()
         fileID = message.photo[-1].file_id
-        file_info = await bot.get_file(fileID)
-        downloaded_file = await bot.download_file(file_info.file_path)
-        image_stream = BytesIO(downloaded_file)
-        image = Image.open(image_stream)
-        unifiedPrompts.append(UnifiedPrompt(content_type='image', content=image, mime_type='image/jpg'))
-    if message.content_type == 'document':
-        if message.document.mime_type in ["image/jpg", "image/png", "image/jpeg", "image/gif"]:
-            fileID = message.document.file_id
+        try:
             file_info = await bot.get_file(fileID)
             downloaded_file = await bot.download_file(file_info.file_path)
             image_stream = BytesIO(downloaded_file)
             image = Image.open(image_stream)
-            unifiedPrompts.append(UnifiedPrompt(content_type='image', content=image, mime_type=message.document.mime_type))
+            unifiedPrompts.append(UnifiedPrompt(content_type='image', content=image, mime_type='image/jpg'))
+        except Exception as ex:
+            print(str(ex))
+            sys.stdout.flush()
+            await bot.reply_to(message, "Your message caused an error: " + str(ex))
+            return False
+    if message.content_type == 'document':
+        print(str(datetime.now()) + " Receiving document from user")
+        sys.stdout.flush()
+        if message.document.mime_type in ["image/jpg", "image/png", "image/jpeg", "image/gif"]:
+            print("type image/")
+            sys.stdout.flush()
+            try:
+                fileID = message.document.file_id
+                file_info = await bot.get_file(fileID)
+                downloaded_file = await bot.download_file(file_info.file_path)
+                image_stream = BytesIO(downloaded_file)
+                image = Image.open(image_stream)
+                unifiedPrompts.append(UnifiedPrompt(content_type='image', content=image, mime_type=message.document.mime_type))
+            except Exception as ex:
+                print(str(ex))
+                sys.stdout.flush()
+                await bot.reply_to(message, "Your message caused an error: " + str(ex))
+                return False
         if message.document.mime_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-            fileID = message.document.file_id
-            file_info = await bot.get_file(fileID)
-            downloaded_file = await bot.download_file(file_info.file_path)
-            xlsx_stream = BytesIO(downloaded_file)
-            converter = XlsxToPromptsConverter()
-            prompts = converter.convert(xlsx_stream)
-            unifiedPrompts.extend(prompts)
+            print("type application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            sys.stdout.flush()
+            try:
+                fileID = message.document.file_id
+                file_info = await bot.get_file(fileID)
+                downloaded_file = await bot.download_file(file_info.file_path)
+                xlsx_stream = BytesIO(downloaded_file)
+                converter = XlsxToPromptsConverter()
+                prompts = converter.convert(xlsx_stream)
+                unifiedPrompts.extend(prompts)
+            except Exception as ex:
+                print(str(ex))
+                sys.stdout.flush()
+                await bot.reply_to(message, "Your message caused an error: " + str(ex))
+                return False
         if message.document.mime_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-            fileID = message.document.file_id
-            file_info = await bot.get_file(fileID)
-            downloaded_file = await bot.download_file(file_info.file_path)
-            script_directory = os.path.dirname(os.path.abspath(__file__))
-            temp_directory = os.path.join(script_directory, 'temp')
+            print("type application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            sys.stdout.flush()
+            try:
+                fileID = message.document.file_id
+                file_info = await bot.get_file(fileID)
+                downloaded_file = await bot.download_file(file_info.file_path)
+                script_directory = os.path.dirname(os.path.abspath(__file__))
+                temp_directory = os.path.join(script_directory, 'temp')
+            except Exception as ex:
+                print(str(ex))
+                sys.stdout.flush()
+                await bot.reply_to(message, "Your message caused an error: " + str(ex))
+                return False
             try:
                 if not os.path.exists(temp_directory):
                     os.makedirs(temp_directory)
@@ -253,6 +306,8 @@ async def echo_message(message):
                 if os.path.exists(file_path):
                     os.remove(file_path)
         if message.document.mime_type == "text/plain":
+            print("type text/plain")
+            sys.stdout.flush()
             fileID = message.document.file_id
             file_info = await bot.get_file(fileID)
             downloaded_file = await bot.download_file(file_info.file_path)
@@ -274,8 +329,12 @@ async def message_received_handler(dialog):
             if unified_prompt.content_type == 'text':
                 await send_long_message(int(dialog.dialog_id), unified_prompt.content)
             if unified_prompt.content_type == 'image':
+                if unified_prompt.content.mode != 'RGB':
+                    rgb_image = unified_prompt.content.convert('RGB')
+                else:
+                    rgb_image = unified_prompt.content
                 with io.BytesIO() as output:
-                    unified_prompt.content.save(output, format="JPEG")
+                    rgb_image.save(output, format="JPEG")
                     jpeg_data = output.getvalue()  
                 await bot.send_photo(int(dialog.dialog_id), photo=jpeg_data)
             if unified_prompt.content_type == 'audio':
@@ -346,7 +405,11 @@ available_model_configs = {
     "/google_docs_ai": {"agent": "Google_DocsAI", "requestAgentConfig": {}},
     "/paddle_ocr": {"agent": "Paddle_OCR", "requestAgentConfig": {}},
     "/microsoft_trocr": {"agent": "Microsoft_TrOCR", "requestAgentConfig": {}},
-    "/mistralai" : {"agent": "MistralAI_Mixtral7b_Instruct", "requestAgentConfig": {"temperature": 0.4}}
+    "/mistralai" : {"agent": "MistralAI_Mixtral7b_Instruct", "requestAgentConfig": {"temperature": 0.4}},
+    "/transcriber" : {"agent": None, "inlineButtons": [{"text": "Русский язык", "callback_data": "/transcriber_ru"}, 
+                                                      {"text": "English language", "callback_data": "/transcriber_en"}]},   
+    "/transcriber_ru": {"agent": "Transcriber", "requestAgentConfig": {"language": "ru"}},
+    "/transcriber_en": {"agent": "Transcriber", "requestAgentConfig": {"language": "en"}}
 }
 
 dialog_configs = {}

@@ -1,14 +1,15 @@
-############## Mycelium Version 0.18.18 of 2024.02.23 ##############
+############## Mycelium Version 0.18.21 of 2024.04.17 ##############
 
 import aio_pika
 import base64
 import copy
-import datetime
+from datetime import datetime
 import io
 import json
 import pika
 from PIL import Image
 import re
+import sys
 import threading
 import uuid
 import warnings
@@ -89,7 +90,7 @@ class Message:
         self.sender_info = sender_info
         self.subAccount = subAccount
         self.role = self.validate_role(role)
-        self.send_datetime = send_datetime if send_datetime else datetime.datetime.now()
+        self.send_datetime = send_datetime if send_datetime else datetime.now()
         self.diagnosticData = diagnosticData
         self.agentConfig = agentConfig
         self.unified_prompts = self.validate_unified_prompts(unified_prompts) if unified_prompts else []
@@ -245,7 +246,7 @@ class Dialog:
             print("Not implemented...")
             #TODO. Finish for 3 document types (XLSXm DOCX, XML???)
             #TODO. Process the file path(s) to load document
-        message = Message(role="user", unified_prompts=unifiedPrompts, sender_info="ComradeAI Client", send_datetime=datetime.datetime.now())
+        message = Message(role="user", unified_prompts=unifiedPrompts, sender_info="ComradeAI Client", send_datetime=datetime.now())
         resultDialog = Dialog(messages=[message])
         resultDialog._update_totals()
         if agent != None:
@@ -257,12 +258,12 @@ class Dialog:
         if not isinstance(other, Dialog) and not isinstance(other, str) and not isinstance(other, list):
             raise ValueError("Can only add Dialog and string or [string] instances together")
         if isinstance(other, str):
-            combined_messages = self.messages + [Message(role="user", unified_prompts=[UnifiedPrompt(content=other, content_type="text", mime_type="text/plain")],  send_datetime=datetime.datetime.now())]
+            combined_messages = self.messages + [Message(role="user", unified_prompts=[UnifiedPrompt(content=other, content_type="text", mime_type="text/plain")],  send_datetime=datetime.now())]
             newDialog = Dialog(messages=combined_messages, dialog_id=self.dialog_id, reply_to=self.reply_to, requestAgentConfig=self.requestAgentConfig, endUserCommunicationID=self.endUserCommunicationID)
         elif isinstance(other, list):
             combined_messages = self.messages
             for strvalue in other:
-                combined_messages.append(Message(role="user", unified_prompts=[UnifiedPrompt(content=strvalue, content_type="text", mime_type="text/plain")],  send_datetime=datetime.datetime.now()))
+                combined_messages.append(Message(role="user", unified_prompts=[UnifiedPrompt(content=strvalue, content_type="text", mime_type="text/plain")],  send_datetime=datetime.now()))
             newDialog = Dialog(messages=combined_messages, dialog_id=self.dialog_id, reply_to=self.reply_to, requestAgentConfig=self.requestAgentConfig, endUserCommunicationID=self.endUserCommunicationID)
         elif isinstance(other, Dialog):
             combined_messages = self.messages + other.messages
@@ -273,12 +274,12 @@ class Dialog:
         if not isinstance(other, Dialog) and not isinstance(other, str) and not isinstance(other, list):
             raise ValueError("Can only add Dialog and string or [string] instances together")
         if isinstance(other, str):
-            combined_messages = [Message(role="user", unified_prompts=[UnifiedPrompt(content=other, content_type="text", mime_type="text/plain")],  send_datetime=datetime.datetime.now())] + self.messages
+            combined_messages = [Message(role="user", unified_prompts=[UnifiedPrompt(content=other, content_type="text", mime_type="text/plain")],  send_datetime=datetime.now())] + self.messages
             newDialog = Dialog(messages=combined_messages, dialog_id=self.dialog_id, reply_to=self.reply_to, requestAgentConfig=self.requestAgentConfig, endUserCommunicationID=self.endUserCommunicationID)
         elif isinstance(other, list):
             combined_messages = []
             for strvalue in other:
-                combined_messages.append(Message(role="user", unified_prompts=[UnifiedPrompt(content=strvalue, content_type="text", mime_type="text/plain")],  send_datetime=datetime.datetime.now()))
+                combined_messages.append(Message(role="user", unified_prompts=[UnifiedPrompt(content=strvalue, content_type="text", mime_type="text/plain")],  send_datetime=datetime.now()))
             combined_messages.extend(self.messages)
             newDialog = Dialog(messages=combined_messages, dialog_id=self.dialog_id, reply_to=self.reply_to, requestAgentConfig=self.requestAgentConfig, endUserCommunicationID=self.endUserCommunicationID)
         elif isinstance(other, Dialog):
@@ -438,7 +439,7 @@ class Dialog:
             'lastMessageRoutingStrategy' : self.lastMessageRoutingStrategy.to_json(),
             'myceliumVersion': self.myceliumVersion
         }
-        return json.dumps(dialog_data)
+        return json.dumps(dialog_data, ensure_ascii=False)
 
     def _content_to_base64(self, content):
         if isinstance(content, Image.Image):
@@ -485,7 +486,7 @@ class Dialog:
                 sender_info=data['sender_info'],
                 subAccount=data['subAccount'],
                 routingStrategy = RoutingStrategy.from_json(data['routingStrategy']),
-                send_datetime=datetime.datetime.fromisoformat(data['send_datetime'])
+                send_datetime=datetime.fromisoformat(data['send_datetime'])
             )
             self.messages.append(message)
         self._update_totals()
@@ -525,7 +526,7 @@ class Dialog:
             role="assistant", 
             unified_prompts=[error_prompt], 
             sender_info=sender_info, 
-            send_datetime=datetime.datetime.now(), 
+            send_datetime=datetime.now(), 
             agentConfig=self.requestAgentConfig, 
             billingData=billingData,
             diagnosticData = diagnosticData,
@@ -746,6 +747,8 @@ class Mycelium:
         
         message = aio_pika.Message(body=compressed_dialog, correlation_id=str(dialog_id), headers=headers, reply_to=self.dialogs[dialog_id].reply_to)
         routing_key = self.output_chanel
+        # print(str(datetime.now()) + " Sending message with headers: " + str(message.headers))
+        # sys.stdout.flush() # This is how we sorted out 4 month flaky error with type2 MQ headers
         try:
             await self.ensure_connected()
             await self.chanel.default_exchange.publish(message, routing_key=routing_key)
@@ -760,50 +763,14 @@ class Mycelium:
         await self.connection.close()
         
 class Agent:
-    def __init__(self, mycelium, service, serviceParams = ""):
+    def __init__(self, mycelium, service, serviceParams = "", timeoutOfSyncRequest = 600):
         self.mycelium = mycelium
         self.service = service
         self.serviceParams = serviceParams
+        self.timeoutOfSyncRequest = timeoutOfSyncRequest
         
     def __rrshift__(self, other):
         return self.Invoke(other)
-
-    # async def InvokeAsync(self, dialogs) -> Dialog:
-    #     #ATTENTION! OUTDATED.
-    #     if isinstance(dialogs, Dialog):
-    #         if not self.mycelium.connection:
-    #             await self.mycelium.connectAsync()
-    #         headers = {
-    #             'billingData' : json.dumps([]),
-    #             'routingStrategy' : RoutingStrategy(strategy="direct", params=self.service).to_json(),
-    #         }
-    #         if self.serviceParams != "" and self.serviceParams is not None:
-    #             headers['requestAgentConfig'] = json.dumps(self.serviceParams)
-            
-    #         message = aio_pika.Message(body=dialogs.serialize_and_compress(), correlation_id=str(dialogs.dialog_id), headers=headers, reply_to=self.mycelium.input_chanel)
-    #         routing_key = self.mycelium.output_chanel
-    #         await self.mycelium.chanel.default_exchange.publish(message, routing_key=routing_key)
-    #         queue = await self.mycelium.chanel.declare_queue(self.mycelium.input_chanel)
-
-    #         async with queue.iterator() as queue_iter:
-    #             async for message in queue_iter:
-    #                 async with message.process():
-    #                     headers = message.headers
-    #                     new_dialog = Dialog(reply_to=message.reply_to, dialog_id=message.correlation_id)
-    #                     dialog_id = new_dialog.dialog_id #We use it further to find the dialog after adding to mycelium.dialogs.
-    #                     if dialog_id in self.mycelium.dialogs:
-    #                         new_dialog.decompress_and_deserialize(message.body)
-    #                         self.mycelium.dialogs[dialog_id].messages += new_dialog.messages
-    #                         self.mycelium.dialogs[dialog_id].requestAgentConfig = new_dialog.requestAgentConfig
-    #                     break
-    #         await self.mycelium.connection.close()
-    #         return self.mycelium.dialogs[dialog_id]
-    #     elif isinstance(dialogs, list):
-    #     #TODO. Implement logic for a lsit of Dialogs
-    #         for dlg in dialogs:
-    #             if not isinstance(dlg, Dialog):
-    #                 raise TypeError("InvokeSync takes only a Dialog object or a list of Dialog objects")
-    #         return True
         
     def PurgeAwaitingIncomeMessages(self):
         if not self.mycelium.connection:
@@ -811,7 +778,7 @@ class Agent:
         try:
             self.mycelium.chanel.queue_purge(queue=self.mycelium.input_chanel)
         except Exception as ex:
-            print("Error purging awaiting messages: " + str(ex))
+            print(str(datetime.now()) + " Error purging awaiting messages: " + str(ex))
         
     def Invoke(self, dialogs):
         dialogs = copy.deepcopy(dialogs)
@@ -845,6 +812,8 @@ class Agent:
         if not self.mycelium.connection or not self.mycelium.connection.is_open:
             self.mycelium.connect()
 
+        self.PurgeAwaitingIncomeMessages()
+
         # Define headers
         headers = {
             'billingData': json.dumps([]),
@@ -874,6 +843,9 @@ class Agent:
                 properties=properties
             )
         def TryConsume():
+            def stop_consuming():
+                self.mycelium.channel.stop_consuming()
+            self.mycelium.connection.call_later(self.timeoutOfSyncRequest, stop_consuming)
             self.mycelium.chanel.basic_consume(queue=self.mycelium.input_chanel, on_message_callback=callback, auto_ack=False)
             self.mycelium.chanel.start_consuming()
 
@@ -883,7 +855,8 @@ class Agent:
             self.mycelium.connect()
             TryPublish(self, dialog, properties)
         except Exception as e:
-            print(f"Unexpected error during connection check: {e}")
+            print(f"{str(datetime.now())} Unexpected error during PUBLISH stage connection check: {e}")
+
         def callback(ch, method, properties, body):
             new_dialog = Dialog(reply_to=properties.reply_to, dialog_id=properties.correlation_id)
             dialog_id = new_dialog.dialog_id
@@ -900,7 +873,7 @@ class Agent:
             self.mycelium.connect()
             TryConsume()
         except Exception as e:
-            print(f"Unexpected error during connection check: {e}")
+            print(f"{str(datetime.now())} Unexpected error during CONSUME stage connection check: {e}")
         
         return self.mycelium.dialogs.get(dialog.dialog_id)
     
@@ -1004,7 +977,7 @@ class DialogTemplate():
             print("Not implemented...")
             #TODO. Finish for 3 document types (XLSXm DOCX, XML???)
             #Missed in both Dialog and DialogTemplate. Pythom OOP sucks.
-        message = Message(role="user", unified_prompts=unifiedPrompts, sender_info="ComradeAI Client", send_datetime=datetime.datetime.now())
+        message = Message(role="user", unified_prompts=unifiedPrompts, sender_info="ComradeAI Client", send_datetime=datetime.now())
         resultDialogTemplate = DialogTemplate(messages=[message])
         resultDialogTemplate._update_totals()
         return (resultDialogTemplate)
