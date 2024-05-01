@@ -426,7 +426,7 @@ myceliumRouter = Mycelium(ComradeAIToken=comradeai_token, message_received_callb
 
 async def main():
     server_task = myceliumRouter.start_server(allowNewDialogs=False)
-    bot_task = bot.polling()
+    bot_task = bot.infinity_polling()
     try:
         await asyncio.gather(server_task, bot_task)
     except Exception as ex:
