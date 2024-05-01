@@ -2,7 +2,6 @@
 # 1. Documented example of how to save dialog to file and load it. Everything is ready for that.
 #------------------------------------------------------------------------------------------------------------#
 
-from ComradeAI.DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConverter
 from ComradeAI.Mycelium import Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
 from dotenv import load_dotenv
 import io
@@ -81,14 +80,6 @@ def create_unified_prompt_from_url(url):
         return [UnifiedPrompt(content_type="text", content=content.decode('utf-8'), mime_type=mime_type)]
     elif mime_type.startswith('image/'):
         return [UnifiedPrompt(content_type="image", content=Image.open(io.BytesIO(content)), mime_type=mime_type)]
-    elif mime_type.startswith('application/vnd.openxmlformats-officedocument.wordprocessingml.document'):
-        converter = DocxToPromptsConverter(convert_urls=True)
-        prompts = converter.convert(io.BytesIO(content))
-        return prompts
-    elif mime_type.startswith('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'):
-        converter = XlsxToPromptsConverter()
-        prompts = converter.convert(io.BytesIO(content))
-        return prompts
     elif mime_type in ["audio/mpeg", "audio/ogg", "audio/wav"]:
         return [UnifiedPrompt(content_type="audio", content=content, mime_type=mime_type)]
     return False

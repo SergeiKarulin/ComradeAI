@@ -5,5 +5,4 @@ nextcord
 Pillow
 pymysql-pool
 python-dotenv
-python-docx
 requests

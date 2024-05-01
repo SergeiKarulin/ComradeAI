@@ -1,4 +1,3 @@
-from ComradeAI.DocumentRoutines import DocxToPromptsConverter, XlsxToPromptsConverter
 from ComradeAI.Mycelium import Agent, Mycelium, Message, Dialog, UnifiedPrompt, RoutingStrategy
 
 import base64
@@ -132,29 +131,6 @@ async def get_agent_response(request: MultiformatRequest):
         #     # Handle video file
         #     added_prompts.append(UnifiedPrompt(content_type="video", content=await file_obj.read(), mime_type=content_type))
         
-        # elif content_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-        #     # Process Excel files
-        #     xlsx_data = await file_obj.read()
-        #     xlsx_stream = BytesIO(xlsx_data)
-        #     # Assuming XlsxToPromptsConverter is implemented and can handle a BytesIO object
-        #     converter = XlsxToPromptsConverter()
-        #     prompts = converter.convert(xlsx_stream)
-        #     added_prompts.extend(prompts)
-        
-        # elif content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        #     # Process Word documents
-        #     docx_data = await file_obj.read()
-        #     with NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
-        #         tmp.write(docx_data)
-        #         tmp_path = tmp.name
-            
-        #     # Assuming DocxToPromptsConverter is implemented and can handle a file path
-        #     converter = DocxToPromptsConverter(convert_urls=True)
-        #     prompts = converter.convert(tmp_path)
-        #     added_prompts.extend(prompts)
-            
-        #     # Clean up the temporary file
-        #     os.remove(tmp_path)
         else:
             # Unsupported file type
             raise HTTPException(status_code=400, detail=f"Unsupported file type: {file_extension}")

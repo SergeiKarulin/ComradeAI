@@ -3,7 +3,6 @@ aiogram
 Pillow
 pymysql-pool
 python-dotenv
-python-docx
 requests
 fastapi
 pydantic

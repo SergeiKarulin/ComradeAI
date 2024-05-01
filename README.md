@@ -17,7 +17,6 @@ The upcoming agents are Sber model Zoo and WaveNet or Mozilla TTS.
 - [Processors to Load/Transform/Download data](docs/Processors.md)
 - [Agent Usage Examples](docs/ServiceExamples.md)
 - [Availabe AI Services Configurations](docs/ServiceConfigurations.md)
-- [Document Routines - deprecated](docs/DocumentRoutines.md)
 
 ## Getting Started with ComradeAI
 
