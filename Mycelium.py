@@ -1,4 +1,4 @@
-############## Mycelium Version 0.18.21 of 2024.04.17 ##############
+############## Mycelium Version 0.18.22 of 2024.05.01 ##############
 
 import aio_pika
 import base64
