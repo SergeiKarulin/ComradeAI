@@ -792,14 +792,19 @@ class Agent:
         
     def __rrshift__(self, other):
         return self.Invoke(other)
-        
-    def PurgeAwaitingIncomeMessages(self):
-        if not self.mycelium.connection:
-            self.mycelium.connect()
-        try:
-            self.mycelium.chanel.queue_purge(queue=self.mycelium.input_chanel)
-        except Exception as ex:
-            print(str(datetime.now()) + " Error during purging awaiting messages: " + str(ex))
+            
+    def PurgeAwaitingIncomeMessages(self):     
+        if not self.mycelium.connection:         
+            self.mycelium.connect()     
+        try:      
+            self.mycelium.chanel.queue_declare(queue=self.mycelium.input_chanel, passive=True)       
+            self.mycelium.chanel.queue_purge(queue=self.mycelium.input_chanel)         
+            print(str(datetime.now()) + " Successfully purged awaiting messages.")     
+        except Exception as ex:         
+            if isinstance(ex, pika.exceptions.ChannelClosedByBroker):           
+                print(str(datetime.now()) + " Queue does not exist; cannot purge messages: " + str(ex))         
+            else:          
+                print(str(datetime.now()) + " Error during purging awaiting messages: " + str(ex))
         
     def Invoke(self, dialogs):
         dialogs = copy.deepcopy(dialogs)
@@ -869,7 +874,7 @@ class Agent:
             )
         def TryConsume():
             def stop_consuming():
-                self.mycelium.channel.stop_consuming()
+                self.mycelium.chanel.stop_consuming()
                 raise TimeoutError(f"Agent did not respond in {self.timeoutOfSyncRequest} seconds defined by timeoutOfSyncRequest probperty for this Agent class object.")
 
             self.mycelium.connection.call_later(self.timeoutOfSyncRequest, stop_consuming)

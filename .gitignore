@@ -8,6 +8,6 @@ venv/
 *launch.json*
 .tmp
 telegramInterface_devstage*
-test*.py
+test*
 downloads*
 temp*

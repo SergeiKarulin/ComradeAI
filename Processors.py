@@ -1,4 +1,4 @@
-############## Mycelium Version 0.18.22 of 2024.05.01 ##############
+############## Mycelium Version 0.18.23 of 2024.05.04 ##############
 
 from Mycelium import Dialog, Message, UnifiedPrompt
 import aiohttp
