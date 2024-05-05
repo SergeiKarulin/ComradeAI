@@ -1,4 +1,4 @@
-############## Mycelium Version 0.18.23 of 2024.05.04 ##############
+############## Mycelium Version 0.18.24 of 2024.05.05 ##############
 
 import aio_pika
 import base64
@@ -792,15 +792,20 @@ class Agent:
         
     def __rrshift__(self, other):
         return self.Invoke(other)
-        
-    def PurgeAwaitingIncomeMessages(self):
-        if not self.mycelium.connection:
-            self.mycelium.connect()
-        try:
-            self.mycelium.chanel.queue_purge(queue=self.mycelium.input_chanel)
-        except Exception as ex:
-            print(str(datetime.now()) + " Error during purging awaiting messages: " + str(ex))
-        
+
+    def PurgeAwaitingIncomeMessages(self):     
+        if not self.mycelium.connection:         
+            self.mycelium.connect()     
+            try:         # Check if the queue exists         
+                self.mycelium.channel.queue_declare(queue=self.mycelium.input_channel, passive=True)       
+                self.mycelium.channel.queue_purge(queue=self.mycelium.input_channel)     
+            except pika.exceptions.ChannelClosedByBroker as e: 
+                print(str(datetime.now()) + " Queue does not exist: " + str(e))     
+            except pika.exceptions.NotFound as e:       
+                print(str(datetime.now()) + " Queue does not exist: " + str(e))     
+            except Exception as ex:       
+                print(str(datetime.now()) + " Error during purging awaiting messages: " + str(ex)) 
+ 
     def Invoke(self, dialogs):
         dialogs = copy.deepcopy(dialogs)
         # Conceptual point. If the imput type is Dialog, we return a Dialog
@@ -869,7 +874,7 @@ class Agent:
             )
         def TryConsume():
             def stop_consuming():
-                self.mycelium.channel.stop_consuming()
+                self.mycelium.chanel.stop_consuming()
                 raise TimeoutError(f"Agent did not respond in {self.timeoutOfSyncRequest} seconds defined by timeoutOfSyncRequest probperty for this Agent class object.")
 
             self.mycelium.connection.call_later(self.timeoutOfSyncRequest, stop_consuming)
