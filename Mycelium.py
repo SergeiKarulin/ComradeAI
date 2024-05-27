@@ -453,6 +453,9 @@ class Dialog:
             return base64.b64encode(content).decode()
         else:
             return content  # For non-binary content
+        
+    def addErrorMessage(self, errorMessageText: str):
+        self.messages.append(Message("assistant", [UnifiedPrompt(content_type="text", content=errorMessageText, mime_type="text/plain")], sender_info="Mycelium", datetime = datetime.now()))
 
     def deserialize(self, serialized_data):
         dialog_data = json.loads(serialized_data)
@@ -577,7 +580,7 @@ class Dialog:
 
 # Mycelium class
 class Mycelium:
-    def __init__(self, host="65.109.141.56", vhost="myceliumVersion018", username=None, password=None, input_chanel=None, output_chanel=None, ComradeAIToken=None, dialogs=None, message_received_callback=None, lastReceivedMessageBillingData = {}, serverAsyncModeThreads = 10, multiClientInstance = False, tempQueueTTL = 30 * 60 * 1000, myceliumVersion = "0.18"):
+    def __init__(self, host="65.109.141.56", vhost="myceliumVersion018", username=None, password=None, input_chanel=None, output_chanel=None, ComradeAIToken=None, dialogs=None, message_received_callback=None, lastReceivedMessageBillingData = {}, serverAsyncModeThreads = 10, multiClientInstance = False, myceliumVersion = "0.18"):
         #TODO. Don't forget to switch to 020 after testing is done.
         #TODO. I must allow to use different Mycelium hosts. In order to do it, I have to lauch one in Russia, like in the Office on Pushkina 38 :)
         self.myceliumVersion = myceliumVersion
@@ -594,9 +597,8 @@ class Mycelium:
         self.message_received_callback = message_received_callback #Only used in a server mode when start_server is awaited.
         self.serverAsyncModeThreads = serverAsyncModeThreads
         # In case a client instance serves may users like visual designer, this thing must be True. If so, each request will create a separate random queue to 
-        # reseive responce, and this queue will live for tempQueueTTL (default 30*60*1000) miliseconds
+        # reseive responce
         self.multiClientInstance = multiClientInstance 
-        self.tempQueueTTL = tempQueueTTL
 
     def dialog_count(self):
         return len(self.dialogs)
@@ -653,21 +655,24 @@ class Mycelium:
         self.chanel = await self.connection.channel()
         await self.chanel.set_qos(prefetch_count=self.serverAsyncModeThreads)
 
-    def connect(self):      
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(
-                host=self.rabbitmq_host,
-                virtual_host=self.rabbitmq_vhost,  # Include the virtual host here
-                credentials=pika.PlainCredentials(
-                    self.rabbitmq_username, self.rabbitmq_password
+    def connect(self, queueName = None, queueTTL = 3600000):    
+        try:
+            self.connection = pika.BlockingConnection(
+                pika.ConnectionParameters(
+                    host=self.rabbitmq_host,
+                    virtual_host=self.rabbitmq_vhost,  # Include the virtual host here
+                    credentials=pika.PlainCredentials(
+                        self.rabbitmq_username, self.rabbitmq_password
+                    )
                 )
             )
-        )
-        self.chanel = self.connection.channel()
-        # Declare the reply_to queue if it doesn't exist
-        if self.multiClientInstance:
-            self.input_chanel = self._generate_random_sequence(8) + "@" + self.input_chanel
-        self.chanel.queue_declare(queue=self.input_chanel, durable=False, arguments={'x-expires': self.tempQueueTTL})
+            self.chanel = self.connection.channel()
+            if not queueName:
+                self.chanel.queue_declare(queue=self.input_chanel, durable=False, arguments={'x-expires': queueTTL})
+            else:
+                self.chanel.queue_declare(queue=queueName, durable=False, arguments={'x-expires': queueTTL}) 
+        except Exception as ex:
+            raise ConnectionError("Mycelium is not accessible! Check you Internet access or ry disabling VPN.")
             
     async def start_server(self, allowNewDialogs = False):
         try:
@@ -774,31 +779,23 @@ class Mycelium:
     
     async def close(self):
         await self.connection.close()
-        
-    def _generate_random_sequence(self, length):
-        characters = string.ascii_lowercase + string.digits
-        random_sequence = ''.join(random.choice(characters) for _ in range(length))
-        return random_sequence
 
 class Agent:
-    def __init__(self, mycelium, service, serviceParams = "", timeoutOfSyncRequest = 600):
+    def __init__(self, mycelium, service, serviceParams = "", timeoutOfSyncRequest = 3600000):
         self.mycelium = mycelium
         self.service = service
         self.serviceParams = serviceParams
-        # In case Agent has timeoutOfSyncRequest defined, we ignore (replace) tempQueueTTL. But if tempQueueTTL < timeoutOfSyncRequest we raise and exception.
         self.timeoutOfSyncRequest = timeoutOfSyncRequest
-        if self.timeoutOfSyncRequest > self.mycelium.tempQueueTTL/1000:
-            raise ValueError(f"The timeoutOfSyncRequest value of {self.timeoutOfSyncRequest} seconds is higher than the expected maximum of {self.mycelium.tempQueueTTL} miliseconds defined in tempQueueTTL of Mycelium class object which will make your application wait for responce into auto-deleted queue. You should either decrease timeoutOfSyncRequest of this Agent class object or increase tempQueueTTL of the Mycelium class object.")
-        
+
     def __rrshift__(self, other):
         return self.Invoke(other)
 
-    def PurgeAwaitingIncomeMessages(self):     
+    def ConnectAndPurgeAwaitingIncomeMessages(self):     
         if not self.mycelium.connection:         
             self.mycelium.connect()     
             try:         # Check if the queue exists         
-                self.mycelium.channel.queue_declare(queue=self.mycelium.input_channel, passive=True)       
-                self.mycelium.channel.queue_purge(queue=self.mycelium.input_channel)     
+                self.mycelium.chanel.queue_declare(queue=self.mycelium.input_channel, passive=True)       
+                self.mycelium.chanel.queue_purge(queue=self.mycelium.input_channel)     
             except pika.exceptions.ChannelClosedByBroker as e: 
                 print(str(datetime.now()) + " Queue does not exist: " + str(e))     
             except pika.exceptions.NotFound as e:       
@@ -830,18 +827,22 @@ class Agent:
             result = resultDialogs
         return result
     
+    def _generate_random_sequence(self, length):
+        characters = string.ascii_lowercase + string.digits
+        random_sequence = ''.join(random.choice(characters) for _ in range(length))
+        return random_sequence
+    
     def __Process(self, dialog) -> Dialog:     
         errorMessage = "Only a Dialog object or a list of dialog class objects can be processed"
         if not isinstance(dialog, Dialog):
             raise TypeError (errorMessage)
         
-        if self.timeoutOfSyncRequest > self.mycelium.tempQueueTTL/1000:
-            raise ValueError(f"The timeoutOfSyncRequest value of {self.timeoutOfSyncRequest} seconds is higher than the expected maximum of {self.mycelium.tempQueueTTL} miliseconds defined in tempQueueTTL of Mycelium class object which will make your application wait for responce into auto-deleted queue. You should either decrease timeoutOfSyncRequest of this Agent class object or increase tempQueueTTL of the Mycelium class object.")
-
-        if not self.mycelium.connection or not self.mycelium.connection.is_open:
-            self.mycelium.connect()
-
-        self.PurgeAwaitingIncomeMessages()
+        queue_to_listen = self.mycelium.input_chanel
+        if self.mycelium.multiClientInstance:
+            queue_to_listen = self._generate_random_sequence(8) + "@" + self.mycelium.input_chanel
+            self.mycelium.connect(queueName = queue_to_listen, queueTTL = self.timeoutOfSyncRequest)
+        else:
+            self.ConnectAndPurgeAwaitingIncomeMessages()
 
         # Define headers
         headers = {
@@ -855,12 +856,12 @@ class Agent:
             headers['requestAgentConfig'] = json.dumps(self.serviceParams)
 
         # Put the dialog into Mycelium and add relevant reply_to
-        dialog.reply_to = self.mycelium.input_chanel
+        dialog.reply_to = queue_to_listen
         self.mycelium.dialogs[dialog.dialog_id] = dialog
         
         # Place message
         properties = pika.BasicProperties(
-            reply_to=self.mycelium.input_chanel,
+            reply_to=queue_to_listen,
             correlation_id=str(dialog.dialog_id),
             headers=headers
         )
@@ -875,17 +876,17 @@ class Agent:
         def TryConsume():
             def stop_consuming():
                 self.mycelium.chanel.stop_consuming()
-                raise TimeoutError(f"Agent did not respond in {self.timeoutOfSyncRequest} seconds defined by timeoutOfSyncRequest probperty for this Agent class object.")
+                raise TimeoutError(f"Agent did not respond in {str(self.timeoutOfSyncRequest/1000)} seconds defined by timeoutOfSyncRequest probperty for this Agent class object.")
 
-            self.mycelium.connection.call_later(self.timeoutOfSyncRequest, stop_consuming)
-            self.mycelium.chanel.basic_consume(queue=self.mycelium.input_chanel, on_message_callback=callback, auto_ack=False)
+            self.mycelium.connection.call_later(self.timeoutOfSyncRequest/1000, stop_consuming)
+            self.mycelium.chanel.basic_consume(queue=queue_to_listen, on_message_callback=callback, auto_ack=False)
             self.mycelium.chanel.start_consuming()
 
         try:
             TryPublish(self, dialog, properties)
-        except aio_pika.exceptions.AMQPError as e:
-            self.mycelium.connect()
-            TryPublish(self, dialog, properties)
+        # except aio_pika.exceptions.AMQPError as e:
+        #     self.mycelium.connect(queueName = queue_to_listen, queueTTL = self.timeoutOfSyncRequest)
+        #     TryPublish(self, dialog, properties)
         except Exception as e:
             print(f"{str(datetime.now())} Error during PUBLISH stage connection check: {e}")
 
@@ -901,11 +902,11 @@ class Agent:
 
         try:
             TryConsume()
-        except aio_pika.exceptions.AMQPError as e:
-            self.mycelium.connect()
-            TryConsume()
+        # except aio_pika.exceptions.AMQPError as e:
+        #     self.mycelium.connect(queueName = queue_to_listen, queueTTL = self.timeoutOfSyncRequest)
+        #     TryConsume()
         except Exception as e:
-            print(f"{str(datetime.now())} Error during responce awaiting or receiving: {e}. In case queue was not found, try increasing timeoutOfSyncRequest for the Agent to have enough time to generate response.")
+            print(f"{str(datetime.now())} Error during responce awaiting or receiving. Error message: {e}. In case queue was not found, try increasing timeoutOfSyncRequest for the Agent to have enough time to generate response.")
         
         return self.mycelium.dialogs.get(dialog.dialog_id)
     
