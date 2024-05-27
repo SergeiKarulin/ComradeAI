@@ -179,19 +179,18 @@ async def get_agent_response(request: MultiformatRequest):
     
     result["content"]["raw_response"] = json.loads(resultDialog.serialize())
     
-    for message in resultDialog.messages:
-        for unified_prompt in message.unified_prompts:
-            if unified_prompt.content_type == 'text':
-                result["content"]["last_text_output"] = unifiedPromptToJSON(unified_prompt)
-            if unified_prompt.content_type == 'image':
-                # Original architecture mistake - the lib uses pillow images instead of binaries.
-                result["content"]["last_image_output"] = unifiedPromptToJSON(unified_prompt)
-            if unified_prompt.content_type == 'audio':
-                result["content"]["last_audio_output"] = unifiedPromptToJSON(unified_prompt)
-            if unified_prompt.content_type == 'video':
-                result["content"]["last_video_output"] = unifiedPromptToJSON(unified_prompt)
-            if unified_prompt.content_type == 'document':
-                result["content"]["last_document_output"] = unifiedPromptToJSON(unified_prompt)
+    for unified_prompt in resultDialog.messages[-1].unified_prompts:
+        if unified_prompt.content_type == 'text':
+            result["content"]["last_text_output"] = unifiedPromptToJSON(unified_prompt)
+        if unified_prompt.content_type == 'image':
+            # Original architecture mistake - the lib uses pillow images instead of binaries.
+            result["content"]["last_image_output"] = unifiedPromptToJSON(unified_prompt)
+        if unified_prompt.content_type == 'audio':
+            result["content"]["last_audio_output"] = unifiedPromptToJSON(unified_prompt)
+        if unified_prompt.content_type == 'video':
+            result["content"]["last_video_output"] = unifiedPromptToJSON(unified_prompt)
+        if unified_prompt.content_type == 'document':
+            result["content"]["last_document_output"] = unifiedPromptToJSON(unified_prompt)
     
     result["result"] = "success"
     result = jsonable_encoder(result)
@@ -277,31 +276,31 @@ async def get_agent_response_webform(
     request_dialog = Dialog(requestAgentConfig=agentConfig)
     request_dialog.messages.append(request_message)
     try:
-        AI = Mycelium(ComradeAIToken=local_comradeai_token)
+        AI = Mycelium(ComradeAIToken=local_comradeai_token, multiClientInstance = True, tempQueueTTL=60*60*1000)
         AI.connect()
     except Exception as ex:
         print(f"{str(datetime.now())} Error: {str(ex)}", flush=True)
         return {"result": "error", "content": str(ex)}
 
-    agent = Agent(AI, agentAddress)
+    agent = Agent(AI, agentAddress, timeoutOfSyncRequest=60*60)
     resultDialog = request_dialog >> agent
     
-    result["content"]["raw_response"] = json.loads(resultDialog.serialize())
+    # result["content"]["raw_response"] = json.loads(resultDialog.serialize())
+    # User's don't need huge binary files they saw here during tests, they wanted only responces. Thus, commented.
     
-    for message in resultDialog.messages:
-        for unified_prompt in message.unified_prompts:
-            if unified_prompt.content_type == 'text':
-                result["content"]["last_text_output"] = unifiedPromptToJSON(unified_prompt)
-            if unified_prompt.content_type == 'image':
-                # Original architecture mistake - the lib uses pillow images instead of binaries.
-                result["content"]["last_image_output"] = unifiedPromptToJSON(unified_prompt)
-            if unified_prompt.content_type == 'audio':
-                result["content"]["last_audio_output"] = unifiedPromptToJSON(unified_prompt)
-            if unified_prompt.content_type == 'video':
-                result["content"]["last_video_output"] = unifiedPromptToJSON(unified_prompt)
-            if unified_prompt.content_type == 'document':
-                result["content"]["last_document_output"] = unifiedPromptToJSON(unified_prompt)
-    
+    for unified_prompt in resultDialog.messages[-1].unified_prompts:
+        if unified_prompt.content_type == 'text':
+            result["content"]["last_text_output"] = unifiedPromptToJSON(unified_prompt)
+        if unified_prompt.content_type == 'image':
+            # Original architecture mistake - the lib uses pillow images instead of binaries.
+            result["content"]["last_image_output"] = unifiedPromptToJSON(unified_prompt)
+        if unified_prompt.content_type == 'audio':
+            result["content"]["last_audio_output"] = unifiedPromptToJSON(unified_prompt)
+        if unified_prompt.content_type == 'video':
+            result["content"]["last_video_output"] = unifiedPromptToJSON(unified_prompt)
+        if unified_prompt.content_type == 'document':
+            result["content"]["last_document_output"] = unifiedPromptToJSON(unified_prompt)
+
     result["result"] = "success"
     result = jsonable_encoder(result)
     return result 
